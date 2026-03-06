@@ -1,21 +1,32 @@
 ---
 title: 'Quickstart'
-description: 'Make your first API call to SaludYa in under 5 minutes'
+description: 'Explore the SaludYa API specification with example requests'
 ---
+
+<Note>
+This documentation represents the API specification for SaludYa. The examples below demonstrate the intended API design and behavior.
+</Note>
 
 ## Welcome to SaludYa API
 
-This guide will help you make your first API call to manage medical appointments. You'll learn how to authenticate, retrieve patient information, and create an appointment.
+This guide provides example API requests for the SaludYa medical appointment management system. You'll see how authentication works, how to retrieve patient information, and create appointments.
+
+## API Base URL
+
+The API is designed to be hosted at:
+```
+https://api.saludya.com/v1
+```
 
 ## Prerequisites
 
-Before you begin, ensure you have:
-- An API key from your [SaludYa Dashboard](https://dashboard.saludya.com)
-- A tool to make HTTP requests (curl, Postman, or your preferred HTTP client)
+When implementing this API, clients will need:
+- An API key for authentication
+- A tool to make HTTP requests (curl, Postman, or any HTTP client)
 
 <Steps>
-  <Step title="Get Your API Key">
-    Log in to your [SaludYa Dashboard](https://dashboard.saludya.com) and navigate to **Settings > API Keys**. Create a new API key and copy it securely.
+  <Step title="API Key Authentication">
+    The API uses bearer token authentication. API keys should be included in the `Authorization` header.
     
     <Warning>
       Keep your API key secure and never commit it to version control. Treat it like a password.
@@ -452,10 +463,10 @@ X-RateLimit-Reset: 1709740800
 ## Need Help?
 
 <CardGroup cols={2}>
-  <Card title="Support" icon="life-ring" href="mailto:support@saludya.com">
-    Contact our support team
+  <Card title="GitHub" icon="github" href="https://github.com/DUVAN100/saludya-api">
+    View the project repository
   </Card>
-  <Card title="Community" icon="users" href="https://community.saludya.com">
-    Join our developer community
+  <Card title="Architecture" icon="diagram-project" href="/architecture">
+    Understand the system design
   </Card>
 </CardGroup>
