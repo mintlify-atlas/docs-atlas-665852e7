@@ -1,0 +1,84 @@
+{
+  "projectType": "api-service",
+  "projectName": "SaludYa API",
+  "projectDescription": "REST API for medical appointment management system built with layered architecture (Controller → Service → Repository).",
+  "theme": "palm",
+  "primaryColor": "#0891b2",
+  "lightColor": "#06b6d4",
+  "darkColor": "#0e7490",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": ["architecture", "authentication", "error-handling"]
+          },
+          {
+            "group": "Guides",
+            "pages": ["guides/setup", "guides/making-requests", "guides/rate-limits"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api/overview"]
+          },
+          {
+            "group": "Appointments",
+            "pages": ["api/appointments/list", "api/appointments/create", "api/appointments/get", "api/appointments/update", "api/appointments/delete"]
+          },
+          {
+            "group": "Patients",
+            "pages": ["api/patients/list", "api/patients/create", "api/patients/get", "api/patients/update", "api/patients/delete"]
+          },
+          {
+            "group": "Doctors",
+            "pages": ["api/doctors/list", "api/doctors/create", "api/doctors/get", "api/doctors/update", "api/doctors/delete"]
+          },
+          {
+            "group": "Schedules",
+            "pages": ["api/schedules/list", "api/schedules/create", "api/schedules/get", "api/schedules/update", "api/schedules/delete"]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Layered architecture (Controller → Service → Repository)",
+    "RESTful API endpoints for medical appointments",
+    "Patient and doctor management",
+    "Appointment scheduling and availability",
+    "Authentication and authorization"
+  ],
+  "publicApiSurface": [
+    "POST /api/appointments",
+    "GET /api/appointments",
+    "GET /api/appointments/:id",
+    "PUT /api/appointments/:id",
+    "DELETE /api/appointments/:id",
+    "POST /api/patients",
+    "GET /api/patients",
+    "GET /api/patients/:id",
+    "PUT /api/patients/:id",
+    "DELETE /api/patients/:id",
+    "POST /api/doctors",
+    "GET /api/doctors",
+    "GET /api/doctors/:id",
+    "PUT /api/doctors/:id",
+    "DELETE /api/doctors/:id",
+    "POST /api/schedules",
+    "GET /api/schedules",
+    "GET /api/schedules/:id",
+    "PUT /api/schedules/:id",
+    "DELETE /api/schedules/:id"
+  ]
+}
