@@ -1,0 +1,477 @@
+---
+title: 'Authentication'
+description: 'Secure your API requests with authentication and authorization'
+---
+
+# Authentication
+
+SaludYa API uses multiple authentication methods to ensure secure access to medical data and appointment management features. All API endpoints except public health information require authentication.
+
+<Warning>
+All authentication credentials must be transmitted over HTTPS. HTTP requests will be rejected.
+</Warning>
+
+## Authentication Methods
+
+SaludYa API supports two primary authentication methods:
+
+1. **API Key Authentication** - For server-to-server integration
+2. **Bearer Token Authentication** - For user-specific operations
+
+```mermaid
+graph TD
+    A[Client Request] --> B{Auth Method?}
+    B -->|API Key| C[Verify API Key]
+    B -->|Bearer Token| D[Verify JWT Token]
+    C --> E{Valid?}
+    D --> E
+    E -->|Yes| F[Process Request]
+    E -->|No| G[401 Unauthorized]
+    F --> H[Check Permissions]
+    H -->|Authorized| I[Return Response]
+    H -->|Forbidden| J[403 Forbidden]
+    
+    style C fill:#e1f5ff
+    style D fill:#e1f5ff
+    style G fill:#ffe1e1
+    style J fill:#ffe1e1
+    style I fill:#e1ffe1
+```
+
+## API Key Authentication
+
+API keys are used for server-to-server communication and administrative operations. Each API key is associated with a specific organization or system.
+
+### Obtaining an API Key
+
+API keys can be generated from the SaludYa dashboard:
+
+1. Log in to your SaludYa admin account
+2. Navigate to **Settings → API Keys**
+3. Click **Generate New API Key**
+4. Assign appropriate permissions
+5. Store the key securely (it will only be shown once)
+
+<Warning>
+API keys grant broad access to your account. Never expose them in client-side code, public repositories, or logs.
+</Warning>
+
+### Using API Keys
+
+Include your API key in the `X-API-Key` header:
+
+```bash
+curl -X GET https://api.saludya.com/v1/appointments \
+  -H "X-API-Key: sk_live_51HqJ9KLkPn8QY7x9vZ3mN2wR4tA6cB8dE1fG2hI3jK4lM5nO6pQ7rS8tU9vW0xY" \
+  -H "Content-Type: application/json"
+```
+
+### API Key Permissions
+
+API keys can be scoped with specific permissions:
+
+| Permission | Description |
+|------------|-------------|
+| `appointments:read` | View appointment data |
+| `appointments:write` | Create and modify appointments |
+| `patients:read` | View patient information |
+| `patients:write` | Create and update patient records |
+| `doctors:read` | View doctor profiles and schedules |
+| `doctors:write` | Manage doctor information |
+| `admin` | Full access to all resources |
+
+<Info>
+Follow the principle of least privilege. Grant only the permissions necessary for your integration.
+</Info>
+
+### Example: Creating an Appointment with API Key
+
+```javascript
+// Node.js example
+const axios = require('axios');
+
+const createAppointment = async () => {
+  try {
+    const response = await axios.post(
+      'https://api.saludya.com/v1/appointments',
+      {
+        patientId: 'pat_12345',
+        doctorId: 'doc_67890',
+        dateTime: '2026-03-15T14:00:00Z',
+        reason: 'Annual checkup',
+        type: 'IN_PERSON'
+      },
+      {
+        headers: {
+          'X-API-Key': process.env.SALUDYA_API_KEY,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('Appointment created:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating appointment:', error.response.data);
+    throw error;
+  }
+};
+```
+
+```python
+# Python example
+import os
+import requests
+from datetime import datetime
+
+API_KEY = os.getenv('SALUDYA_API_KEY')
+BASE_URL = 'https://api.saludya.com/v1'
+
+def create_appointment(patient_id, doctor_id, date_time, reason):
+    headers = {
+        'X-API-Key': API_KEY,
+        'Content-Type': 'application/json'
+    }
+    
+    payload = {
+        'patientId': patient_id,
+        'doctorId': doctor_id,
+        'dateTime': date_time,
+        'reason': reason,
+        'type': 'IN_PERSON'
+    }
+    
+    response = requests.post(
+        f'{BASE_URL}/appointments',
+        json=payload,
+        headers=headers
+    )
+    
+    response.raise_for_status()
+    return response.json()
+
+# Usage
+appointment = create_appointment(
+    patient_id='pat_12345',
+    doctor_id='doc_67890',
+    date_time='2026-03-15T14:00:00Z',
+    reason='Annual checkup'
+)
+print(f"Appointment created: {appointment['data']['id']}")
+```
+
+## Bearer Token Authentication
+
+Bearer tokens (JWT) are used for user-specific operations, typically in web and mobile applications. Tokens are short-lived and associated with a specific user session.
+
+### Obtaining a Bearer Token
+
+Authenticate a user to receive a JWT token:
+
+```bash
+curl -X POST https://api.saludya.com/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "patient@example.com",
+    "password": "secure_password",
+    "role": "patient"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJwYXRfMTIzNDUiLCJyb2xlIjoicGF0aWVudCIsImlhdCI6MTcwOTczNDQwMCwiZXhwIjoxNzA5NzM4MDAwfQ.abc123",
+    "refreshToken": "rt_xyz789refreshtoken",
+    "expiresIn": 3600,
+    "tokenType": "Bearer",
+    "user": {
+      "id": "pat_12345",
+      "email": "patient@example.com",
+      "name": "John Doe",
+      "role": "patient"
+    }
+  }
+}
+```
+
+### Using Bearer Tokens
+
+Include the access token in the `Authorization` header:
+
+```bash
+curl -X GET https://api.saludya.com/v1/appointments/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json"
+```
+
+### Token Expiration and Refresh
+
+Access tokens expire after 1 hour. Use the refresh token to obtain a new access token:
+
+```bash
+curl -X POST https://api.saludya.com/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "rt_xyz789refreshtoken"
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.newtoken...",
+    "expiresIn": 3600,
+    "tokenType": "Bearer"
+  }
+}
+```
+
+<Note>
+Refresh tokens are valid for 30 days. After expiration, users must log in again.
+</Note>
+
+### Example: Patient Viewing Their Appointments
+
+```javascript
+// React example with axios interceptor for token refresh
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'https://api.saludya.com/v1'
+});
+
+// Add token to requests
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Handle token refresh on 401
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        const refreshToken = localStorage.getItem('refreshToken');
+        const response = await axios.post(
+          'https://api.saludya.com/v1/auth/refresh',
+          { refreshToken }
+        );
+
+        const { accessToken } = response.data.data;
+        localStorage.setItem('accessToken', accessToken);
+        
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.clear();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// Get patient's appointments
+const getMyAppointments = async () => {
+  try {
+    const response = await api.get('/appointments/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching appointments:', error);
+    throw error;
+  }
+};
+
+export { api, getMyAppointments };
+```
+
+## Role-Based Access Control
+
+SaludYa API implements role-based access control (RBAC) to ensure users can only access appropriate resources:
+
+| Role | Access Level |
+|------|-------------|
+| **Patient** | View/manage own appointments and medical records |
+| **Doctor** | View assigned patients, manage own schedule, update appointment notes |
+| **Receptionist** | Create/modify appointments, view patient contact info |
+| **Admin** | Full access to all resources |
+
+### Example: Role-Based Endpoint Access
+
+```javascript
+// Middleware example for role checking
+const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    const userRole = req.user.role; // Set by auth middleware
+
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have permission to access this resource'
+        }
+      });
+    }
+
+    next();
+  };
+};
+
+// Route examples
+app.get('/appointments/me', 
+  authenticateToken,
+  checkRole(['patient']),
+  appointmentController.getMyAppointments
+);
+
+app.get('/appointments/:id',
+  authenticateToken,
+  checkRole(['patient', 'doctor', 'receptionist', 'admin']),
+  appointmentController.getAppointment
+);
+
+app.delete('/appointments/:id',
+  authenticateToken,
+  checkRole(['admin', 'receptionist']),
+  appointmentController.deleteAppointment
+);
+```
+
+## Security Best Practices
+
+<Warning>
+**Critical Security Requirements:**
+- Always use HTTPS for API requests
+- Never commit API keys or tokens to version control
+- Rotate API keys regularly (every 90 days recommended)
+- Implement rate limiting to prevent abuse
+- Log all authentication attempts for audit purposes
+</Warning>
+
+### Storing Credentials Securely
+
+**DO:**
+- Use environment variables for API keys
+- Use secure secret management services (AWS Secrets Manager, HashiCorp Vault, etc.)
+- Store tokens in httpOnly cookies or secure storage for mobile apps
+- Implement token encryption at rest
+
+**DON'T:**
+- Hardcode credentials in source code
+- Store tokens in localStorage (vulnerable to XSS)
+- Share API keys across multiple environments
+- Log sensitive authentication data
+
+### Example: Secure Configuration
+
+```javascript
+// config/auth.js
+require('dotenv').config();
+
+module.exports = {
+  apiKey: process.env.SALUDYA_API_KEY,
+  jwtSecret: process.env.JWT_SECRET,
+  jwtExpiresIn: '1h',
+  refreshTokenExpiresIn: '30d',
+  apiBaseUrl: process.env.API_BASE_URL || 'https://api.saludya.com/v1',
+  
+  // Validate required credentials
+  validate() {
+    const required = ['SALUDYA_API_KEY', 'JWT_SECRET'];
+    const missing = required.filter(key => !process.env[key]);
+    
+    if (missing.length > 0) {
+      throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    }
+  }
+};
+```
+
+```bash
+# .env file (never commit this!)
+SALUDYA_API_KEY=sk_live_51HqJ9KLkPn8QY7x9vZ3mN2wR4tA6cB8dE1fG2hI3jK4lM5nO6pQ7rS8tU9vW0xY
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+API_BASE_URL=https://api.saludya.com/v1
+```
+
+## Testing Authentication
+
+When testing with authentication, use separate API keys for development and production:
+
+```javascript
+// test/setup.js
+const testApiKey = 'sk_test_1234567890abcdef'; // Test API key
+
+global.testHeaders = {
+  'X-API-Key': testApiKey,
+  'Content-Type': 'application/json'
+};
+
+// test/appointments.test.js
+const request = require('supertest');
+const app = require('../app');
+
+describe('Appointments API', () => {
+  test('should require authentication', async () => {
+    const response = await request(app)
+      .get('/appointments')
+      .expect(401);
+
+    expect(response.body.error.code).toBe('UNAUTHORIZED');
+  });
+
+  test('should create appointment with valid API key', async () => {
+    const response = await request(app)
+      .post('/appointments')
+      .set(global.testHeaders)
+      .send({
+        patientId: 'pat_test_123',
+        doctorId: 'doc_test_456',
+        dateTime: '2026-03-15T14:00:00Z',
+        reason: 'Test appointment'
+      })
+      .expect(201);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data).toHaveProperty('id');
+  });
+});
+```
+
+<Info>
+Test API keys are prefixed with `sk_test_` and work only in development/staging environments.
+</Info>
+
+## Common Authentication Errors
+
+| Status Code | Error Code | Description | Solution |
+|-------------|------------|-------------|----------|
+| 401 | `UNAUTHORIZED` | Missing or invalid authentication | Provide valid API key or token |
+| 401 | `TOKEN_EXPIRED` | JWT token has expired | Refresh the token or re-authenticate |
+| 401 | `INVALID_API_KEY` | API key not found or revoked | Check API key and regenerate if needed |
+| 403 | `FORBIDDEN` | User lacks required permissions | Check user role and endpoint requirements |
+| 403 | `INSUFFICIENT_PERMISSIONS` | API key lacks required scopes | Update API key permissions |
+
+See the [Error Handling](/error-handling) documentation for complete error reference.

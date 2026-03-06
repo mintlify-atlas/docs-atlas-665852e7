@@ -1,0 +1,209 @@
+---
+title: 'Update Schedule'
+api: 'PUT /api/schedules/:id'
+description: 'Update an existing doctor schedule'
+---
+
+Update a doctor's schedule to modify availability times, enable/disable the slot, or change the day of week.
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the schedule to update
+</ParamField>
+
+## Request Body
+
+<ParamField body="doctor_id" type="integer" optional>
+  ID of the doctor (changing ownership of schedule)
+</ParamField>
+
+<ParamField body="day_of_week" type="string" optional>
+  Day of the week. Valid values: `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, `sunday`
+</ParamField>
+
+<ParamField body="start_time" type="string" optional>
+  Start time in HH:MM:SS format (24-hour). Example: `08:00:00`
+</ParamField>
+
+<ParamField body="end_time" type="string" optional>
+  End time in HH:MM:SS format (24-hour). Must be after start_time. Example: `17:00:00`
+</ParamField>
+
+<ParamField body="is_available" type="boolean" optional>
+  Whether this schedule slot is available for appointments. Use `false` to temporarily disable a schedule without deleting it.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the schedule
+</ResponseField>
+
+<ResponseField name="doctor_id" type="integer">
+  ID of the doctor this schedule belongs to
+</ResponseField>
+
+<ResponseField name="day_of_week" type="string">
+  Day of the week (monday-sunday)
+</ResponseField>
+
+<ResponseField name="start_time" type="string">
+  Start time in HH:MM:SS format
+</ResponseField>
+
+<ResponseField name="end_time" type="string">
+  End time in HH:MM:SS format
+</ResponseField>
+
+<ResponseField name="is_available" type="boolean">
+  Availability status of this schedule
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of creation
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL - Extend Hours
+curl -X PUT "https://api.saludya.com/api/schedules/101" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "end_time": "13:00:00"
+  }'
+```
+
+```bash cURL - Disable Schedule
+curl -X PUT "https://api.saludya.com/api/schedules/101" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_available": false
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.saludya.com/api/schedules/101', {
+  method: 'PUT',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    start_time: '09:00:00',
+    end_time: '13:00:00'
+  })
+});
+
+const updated = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.put(
+    'https://api.saludya.com/api/schedules/101',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={
+        'is_available': False
+    }
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "id": 101,
+  "doctor_id": 5,
+  "day_of_week": "monday",
+  "start_time": "08:00:00",
+  "end_time": "13:00:00",
+  "is_available": true,
+  "created_at": "2026-01-15T10:30:00Z",
+  "updated_at": "2026-03-06T15:45:00Z"
+}
+```
+
+```json 400 Bad Request
+{
+  "error": "Validation Error",
+  "message": "end_time must be after start_time",
+  "details": {
+    "field": "end_time",
+    "value": "07:00:00",
+    "current_start_time": "08:00:00"
+  }
+}
+```
+
+```json 404 Not Found
+{
+  "error": "Not Found",
+  "message": "Schedule with id 101 not found"
+}
+```
+
+```json 409 Conflict
+{
+  "error": "Schedule Conflict",
+  "message": "Updated schedule would overlap with existing schedule",
+  "conflicting_schedule_id": 102
+}
+```
+</ResponseExample>
+
+## Common Update Scenarios
+
+### Temporarily Disable a Schedule
+
+Set `is_available` to `false` when a doctor is temporarily unavailable (vacation, sick leave) without deleting the schedule:
+
+```json
+{
+  "is_available": false
+}
+```
+
+### Extend Working Hours
+
+Modify start or end times to accommodate more patients:
+
+```json
+{
+  "start_time": "07:00:00",
+  "end_time": "14:00:00"
+}
+```
+
+### Change Schedule Day
+
+Move a schedule to a different day of the week:
+
+```json
+{
+  "day_of_week": "tuesday"
+}
+```
+
+## Impact on Existing Appointments
+
+**Important**: Updating a schedule does not automatically cancel or modify existing appointments. Consider these scenarios:
+
+1. **Shortening hours**: Appointments outside new time range remain valid
+2. **Disabling schedule**: Existing appointments are preserved
+3. **Changing day**: Appointments remain on original day
+
+Best practice: Query existing appointments before making schedule changes that might create conflicts:
+
+```bash
+# Check for appointments in this schedule's time slot
+curl "https://api.saludya.com/api/appointments?doctor_id=5&day_of_week=monday&status=scheduled"
+```

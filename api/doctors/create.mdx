@@ -1,0 +1,176 @@
+---
+title: 'Create Doctor'
+api: 'POST /api/doctors'
+description: 'Add a new doctor to the system'
+---
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Full name of the doctor (e.g., "Dr. Maria Garcia")
+</ParamField>
+
+<ParamField body="specialty" type="string" required>
+  Medical specialty or area of expertise (e.g., "Cardiology", "Pediatrics", "Dermatology")
+</ParamField>
+
+<ParamField body="license_number" type="string" required>
+  Professional medical license number. Must be unique in the system.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Doctor's professional email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Contact phone number with country code (e.g., "+1-555-0123")
+</ParamField>
+
+<ParamField body="bio" type="string">
+  Professional biography, credentials, and areas of expertise. Maximum 1000 characters.
+</ParamField>
+
+<ParamField body="available" type="boolean" default="true">
+  Whether the doctor is accepting new patients
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique identifier for the newly created doctor
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Full name of the doctor
+</ResponseField>
+
+<ResponseField name="specialty" type="string">
+  Medical specialty
+</ResponseField>
+
+<ResponseField name="license_number" type="string">
+  Professional medical license number
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Doctor's contact email address
+</ResponseField>
+
+<ResponseField name="phone" type="string">
+  Doctor's contact phone number
+</ResponseField>
+
+<ResponseField name="bio" type="string">
+  Professional biography
+</ResponseField>
+
+<ResponseField name="available" type="boolean">
+  Availability status
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of creation
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.saludya.com/api/doctors" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Dr. Sarah Johnson",
+    "specialty": "Pediatrics",
+    "license_number": "MD-54321-NY",
+    "email": "sarah.johnson@saludya.com",
+    "phone": "+1-555-0199",
+    "bio": "Board-certified pediatrician with 10 years of experience in child and adolescent care. Specialized in developmental pediatrics and preventive medicine.",
+    "available": true
+  }'
+```
+
+```bash Minimal Request
+curl -X POST "https://api.saludya.com/api/doctors" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Dr. Michael Brown",
+    "specialty": "Dermatology",
+    "license_number": "MD-98765-TX",
+    "email": "michael.brown@saludya.com",
+    "phone": "+1-555-0200"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response (201)
+{
+  "id": "doc_9a0b1c2d3e4f5g6h",
+  "name": "Dr. Sarah Johnson",
+  "specialty": "Pediatrics",
+  "license_number": "MD-54321-NY",
+  "email": "sarah.johnson@saludya.com",
+  "phone": "+1-555-0199",
+  "bio": "Board-certified pediatrician with 10 years of experience in child and adolescent care. Specialized in developmental pediatrics and preventive medicine.",
+  "available": true,
+  "created_at": "2024-03-06T15:30:00Z",
+  "updated_at": "2024-03-06T15:30:00Z"
+}
+```
+
+```json Error Response (400)
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request data",
+    "details": [
+      {
+        "field": "email",
+        "message": "Invalid email format"
+      },
+      {
+        "field": "license_number",
+        "message": "License number is required"
+      }
+    ]
+  }
+}
+```
+
+```json Error Response (409)
+{
+  "error": {
+    "code": "DUPLICATE_LICENSE",
+    "message": "A doctor with this license number already exists in the system",
+    "field": "license_number"
+  }
+}
+```
+
+```json Error Response (401)
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API key. Please provide a valid authorization token."
+  }
+}
+```
+</ResponseExample>
+
+## Next Steps
+
+After creating a doctor:
+
+1. **Set up schedules** - Use the [Create Schedule](/api/schedules/create) endpoint to define the doctor's available time slots
+2. **View doctor details** - Retrieve the doctor's information using [Get Doctor](/api/doctors/get)
+3. **Enable appointments** - Once schedules are configured, patients can book appointments with this doctor
+
+## Related Resources
+
+- [Update Doctor](/api/doctors/update) - Modify doctor information
+- [List Doctors](/api/doctors/list) - View all doctors
+- [Doctor Schedules](/api/schedules/create) - Configure availability

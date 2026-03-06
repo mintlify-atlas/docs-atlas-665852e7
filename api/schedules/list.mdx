@@ -1,0 +1,174 @@
+---
+title: 'List Schedules'
+api: 'GET /api/schedules'
+description: 'Retrieve a list of all doctor schedules'
+---
+
+Retrieve a paginated list of all doctor schedules in the system. Schedules define when doctors are available for appointments.
+
+## Query Parameters
+
+<ParamField query="doctor_id" type="integer" optional>
+  Filter schedules by doctor ID
+</ParamField>
+
+<ParamField query="day_of_week" type="string" optional>
+  Filter by day of week (monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+</ParamField>
+
+<ParamField query="is_available" type="boolean" optional>
+  Filter by availability status
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="integer" default="20">
+  Number of schedules per page (max 100)
+</ParamField>
+
+## Response
+
+<ResponseField name="schedules" type="array">
+  Array of schedule objects
+  
+  <ResponseField name="id" type="integer">
+    Unique identifier for the schedule
+  </ResponseField>
+  
+  <ResponseField name="doctor_id" type="integer">
+    ID of the doctor this schedule belongs to
+  </ResponseField>
+  
+  <ResponseField name="day_of_week" type="string">
+    Day of the week (monday-sunday)
+  </ResponseField>
+  
+  <ResponseField name="start_time" type="string">
+    Start time in HH:MM:SS format (24-hour)
+  </ResponseField>
+  
+  <ResponseField name="end_time" type="string">
+    End time in HH:MM:SS format (24-hour)
+  </ResponseField>
+  
+  <ResponseField name="is_available" type="boolean">
+    Whether the schedule slot is currently available
+  </ResponseField>
+  
+  <ResponseField name="created_at" type="string">
+    ISO 8601 timestamp of creation
+  </ResponseField>
+  
+  <ResponseField name="updated_at" type="string">
+    ISO 8601 timestamp of last update
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="pagination" type="object">
+  Pagination metadata
+  
+  <ResponseField name="current_page" type="integer">
+    Current page number
+  </ResponseField>
+  
+  <ResponseField name="total_pages" type="integer">
+    Total number of pages
+  </ResponseField>
+  
+  <ResponseField name="total_count" type="integer">
+    Total number of schedules
+  </ResponseField>
+  
+  <ResponseField name="per_page" type="integer">
+    Number of items per page
+  </ResponseField>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.saludya.com/api/schedules?doctor_id=5&day_of_week=monday" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.saludya.com/api/schedules?doctor_id=5&day_of_week=monday', {
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://api.saludya.com/api/schedules',
+    params={'doctor_id': 5, 'day_of_week': 'monday'},
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "schedules": [
+    {
+      "id": 101,
+      "doctor_id": 5,
+      "day_of_week": "monday",
+      "start_time": "08:00:00",
+      "end_time": "12:00:00",
+      "is_available": true,
+      "created_at": "2026-01-15T10:30:00Z",
+      "updated_at": "2026-01-15T10:30:00Z"
+    },
+    {
+      "id": 102,
+      "doctor_id": 5,
+      "day_of_week": "monday",
+      "start_time": "14:00:00",
+      "end_time": "18:00:00",
+      "is_available": true,
+      "created_at": "2026-01-15T10:30:00Z",
+      "updated_at": "2026-01-15T10:30:00Z"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 1,
+    "total_count": 2,
+    "per_page": 20
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Invalid or missing authentication token"
+}
+```
+</ResponseExample>
+
+## Schedule Patterns
+
+Schedules define recurring availability patterns for doctors. Each schedule represents a weekly time slot that repeats every week. Common patterns include:
+
+- **Split shifts**: Morning (08:00-12:00) and afternoon (14:00-18:00) slots
+- **Full day**: Single long slot (08:00-17:00)
+- **Evening hours**: Late availability (15:00-21:00)
+
+## Relationship to Appointments
+
+Schedules determine when appointments can be booked. The system checks:
+1. Doctor has a schedule for the requested day of week
+2. Requested time falls within schedule's start_time and end_time
+3. Schedule's is_available flag is true
+4. No conflicting appointments already exist in that slot

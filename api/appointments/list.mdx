@@ -1,0 +1,227 @@
+---
+title: 'List Appointments'
+api: 'GET /api/appointments'
+description: 'Retrieve a paginated list of appointments with optional filtering and sorting'
+---
+
+Retrieve all appointments in the system with support for pagination, filtering by status, date range, patient, and doctor, as well as sorting options.
+
+## Query Parameters
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="integer" default="20">
+  Number of appointments per page (max: 100)
+</ParamField>
+
+<ParamField query="status" type="string">
+  Filter by appointment status. Options: `scheduled`, `confirmed`, `in_progress`, `completed`, `cancelled`, `no_show`
+</ParamField>
+
+<ParamField query="patient_id" type="string">
+  Filter appointments by patient ID
+</ParamField>
+
+<ParamField query="doctor_id" type="string">
+  Filter appointments by doctor ID
+</ParamField>
+
+<ParamField query="date_from" type="string">
+  Filter appointments from this date (ISO 8601 format: YYYY-MM-DD)
+</ParamField>
+
+<ParamField query="date_to" type="string">
+  Filter appointments until this date (ISO 8601 format: YYYY-MM-DD)
+</ParamField>
+
+<ParamField query="sort_by" type="string" default="date">
+  Field to sort by. Options: `date`, `created_at`, `status`
+</ParamField>
+
+<ParamField query="sort_order" type="string" default="asc">
+  Sort order. Options: `asc`, `desc`
+</ParamField>
+
+## Response
+
+<ResponseField name="appointments" type="array">
+  Array of appointment objects
+  
+  <ResponseField name="id" type="string">
+    Unique appointment identifier
+  </ResponseField>
+  
+  <ResponseField name="patient_id" type="string">
+    ID of the patient
+  </ResponseField>
+  
+  <ResponseField name="patient_name" type="string">
+    Full name of the patient
+  </ResponseField>
+  
+  <ResponseField name="doctor_id" type="string">
+    ID of the assigned doctor
+  </ResponseField>
+  
+  <ResponseField name="doctor_name" type="string">
+    Full name of the doctor
+  </ResponseField>
+  
+  <ResponseField name="specialty" type="string">
+    Medical specialty for the appointment
+  </ResponseField>
+  
+  <ResponseField name="date" type="string">
+    Appointment date (ISO 8601 format)
+  </ResponseField>
+  
+  <ResponseField name="time" type="string">
+    Appointment time (HH:MM format)
+  </ResponseField>
+  
+  <ResponseField name="duration_minutes" type="integer">
+    Expected duration of the appointment in minutes
+  </ResponseField>
+  
+  <ResponseField name="status" type="string">
+    Current status of the appointment: `scheduled`, `confirmed`, `in_progress`, `completed`, `cancelled`, `no_show`
+  </ResponseField>
+  
+  <ResponseField name="reason" type="string">
+    Reason for the appointment visit
+  </ResponseField>
+  
+  <ResponseField name="notes" type="string">
+    Additional notes or special instructions
+  </ResponseField>
+  
+  <ResponseField name="created_at" type="string">
+    Timestamp when the appointment was created
+  </ResponseField>
+  
+  <ResponseField name="updated_at" type="string">
+    Timestamp when the appointment was last updated
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="pagination" type="object">
+  Pagination metadata
+  
+  <ResponseField name="current_page" type="integer">
+    Current page number
+  </ResponseField>
+  
+  <ResponseField name="total_pages" type="integer">
+    Total number of pages
+  </ResponseField>
+  
+  <ResponseField name="total_count" type="integer">
+    Total number of appointments matching the filters
+  </ResponseField>
+  
+  <ResponseField name="per_page" type="integer">
+    Number of items per page
+  </ResponseField>
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.saludya.com/api/appointments?page=1&limit=10&status=scheduled&date_from=2026-03-06&sort_by=date&sort_order=asc" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+## Example Response
+
+```json
+{
+  "appointments": [
+    {
+      "id": "apt_7k3m9n2p4q",
+      "patient_id": "pat_5x8y2z4a6b",
+      "patient_name": "María González",
+      "doctor_id": "doc_3j5k7m9n1p",
+      "doctor_name": "Dr. Carlos Ramírez",
+      "specialty": "Cardiología",
+      "date": "2026-03-10",
+      "time": "09:30",
+      "duration_minutes": 30,
+      "status": "scheduled",
+      "reason": "Consulta de control cardiovascular",
+      "notes": "Traer resultados de análisis de sangre",
+      "created_at": "2026-03-05T14:22:10Z",
+      "updated_at": "2026-03-05T14:22:10Z"
+    },
+    {
+      "id": "apt_8m4n1p5r7s",
+      "patient_id": "pat_6y9z3a5b7c",
+      "patient_name": "Juan Pérez",
+      "doctor_id": "doc_4k6m8n2p3q",
+      "doctor_name": "Dra. Ana Martínez",
+      "specialty": "Medicina General",
+      "date": "2026-03-10",
+      "time": "10:00",
+      "duration_minutes": 20,
+      "status": "confirmed",
+      "reason": "Revisión anual",
+      "notes": null,
+      "created_at": "2026-03-04T10:15:30Z",
+      "updated_at": "2026-03-05T16:45:22Z"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 5,
+    "total_count": 48,
+    "per_page": 10
+  }
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="object">
+  <ResponseField name="code" type="string">
+    Error code identifier
+  </ResponseField>
+  
+  <ResponseField name="message" type="string">
+    Human-readable error message
+  </ResponseField>
+</ResponseField>
+
+### 400 Bad Request
+
+```json
+{
+  "error": {
+    "code": "INVALID_PARAMETERS",
+    "message": "Invalid date format for date_from. Expected ISO 8601 format (YYYY-MM-DD)"
+  }
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API token"
+  }
+}
+```
+
+### 429 Too Many Requests
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded. Please try again in 60 seconds"
+  }
+}
+```

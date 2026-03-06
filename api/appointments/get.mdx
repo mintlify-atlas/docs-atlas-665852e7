@@ -1,0 +1,220 @@
+---
+title: 'Get Appointment'
+api: 'GET /api/appointments/:id'
+description: 'Retrieve a specific appointment by ID'
+---
+
+Get detailed information about a specific appointment using its unique identifier.
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Unique identifier of the appointment
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique appointment identifier
+</ResponseField>
+
+<ResponseField name="patient_id" type="string">
+  ID of the patient
+</ResponseField>
+
+<ResponseField name="patient_name" type="string">
+  Full name of the patient
+</ResponseField>
+
+<ResponseField name="patient_email" type="string">
+  Email address of the patient
+</ResponseField>
+
+<ResponseField name="patient_phone" type="string">
+  Phone number of the patient
+</ResponseField>
+
+<ResponseField name="doctor_id" type="string">
+  ID of the assigned doctor
+</ResponseField>
+
+<ResponseField name="doctor_name" type="string">
+  Full name of the doctor
+</ResponseField>
+
+<ResponseField name="specialty" type="string">
+  Medical specialty for the appointment
+</ResponseField>
+
+<ResponseField name="date" type="string">
+  Appointment date (ISO 8601 format)
+</ResponseField>
+
+<ResponseField name="time" type="string">
+  Appointment time (HH:MM format)
+</ResponseField>
+
+<ResponseField name="duration_minutes" type="integer">
+  Expected duration of the appointment in minutes
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status of the appointment: `scheduled`, `confirmed`, `in_progress`, `completed`, `cancelled`, `no_show`
+</ResponseField>
+
+<ResponseField name="reason" type="string">
+  Reason for the appointment visit
+</ResponseField>
+
+<ResponseField name="notes" type="string">
+  Additional notes or special instructions
+</ResponseField>
+
+<ResponseField name="diagnosis" type="string">
+  Medical diagnosis (available after appointment completion)
+</ResponseField>
+
+<ResponseField name="prescription" type="string">
+  Prescribed medications or treatment (available after appointment completion)
+</ResponseField>
+
+<ResponseField name="follow_up_required" type="boolean">
+  Whether a follow-up appointment is recommended
+</ResponseField>
+
+<ResponseField name="follow_up_date" type="string">
+  Recommended date for follow-up appointment
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Timestamp when the appointment was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Timestamp when the appointment was last updated
+</ResponseField>
+
+<ResponseField name="completed_at" type="string">
+  Timestamp when the appointment was completed (if applicable)
+</ResponseField>
+
+<ResponseField name="cancelled_at" type="string">
+  Timestamp when the appointment was cancelled (if applicable)
+</ResponseField>
+
+<ResponseField name="cancellation_reason" type="string">
+  Reason for cancellation (if applicable)
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.saludya.com/api/appointments/apt_7k3m9n2p4q" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+## Example Response
+
+```json
+{
+  "id": "apt_7k3m9n2p4q",
+  "patient_id": "pat_5x8y2z4a6b",
+  "patient_name": "María González",
+  "patient_email": "maria.gonzalez@email.com",
+  "patient_phone": "+52-555-123-4567",
+  "doctor_id": "doc_3j5k7m9n1p",
+  "doctor_name": "Dr. Carlos Ramírez",
+  "specialty": "Cardiología",
+  "date": "2026-03-10",
+  "time": "09:30",
+  "duration_minutes": 30,
+  "status": "scheduled",
+  "reason": "Consulta de control cardiovascular",
+  "notes": "Traer resultados de análisis de sangre",
+  "diagnosis": null,
+  "prescription": null,
+  "follow_up_required": false,
+  "follow_up_date": null,
+  "created_at": "2026-03-05T14:22:10Z",
+  "updated_at": "2026-03-05T14:22:10Z",
+  "completed_at": null,
+  "cancelled_at": null,
+  "cancellation_reason": null
+}
+```
+
+## Example Response (Completed Appointment)
+
+```json
+{
+  "id": "apt_6m8n4p1r3s",
+  "patient_id": "pat_2x5y8z3a1b",
+  "patient_name": "José Hernández",
+  "patient_email": "jose.hernandez@email.com",
+  "patient_phone": "+52-555-987-6543",
+  "doctor_id": "doc_4k6m8n2p3q",
+  "doctor_name": "Dra. Ana Martínez",
+  "specialty": "Medicina General",
+  "date": "2026-03-05",
+  "time": "11:00",
+  "duration_minutes": 20,
+  "status": "completed",
+  "reason": "Dolor de garganta y fiebre",
+  "notes": "Síntomas desde hace 3 días",
+  "diagnosis": "Faringitis aguda",
+  "prescription": "Amoxicilina 500mg cada 8 horas por 7 días. Paracetamol 500mg cada 6 horas si hay fiebre.",
+  "follow_up_required": true,
+  "follow_up_date": "2026-03-12",
+  "created_at": "2026-03-04T08:15:30Z",
+  "updated_at": "2026-03-05T11:25:42Z",
+  "completed_at": "2026-03-05T11:25:42Z",
+  "cancelled_at": null,
+  "cancellation_reason": null
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="object">
+  <ResponseField name="code" type="string">
+    Error code identifier
+  </ResponseField>
+  
+  <ResponseField name="message" type="string">
+    Human-readable error message
+  </ResponseField>
+</ResponseField>
+
+### 401 Unauthorized
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API token"
+  }
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "You don't have permission to access this appointment"
+  }
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "Appointment with ID 'apt_7k3m9n2p4q' not found"
+  }
+}
+```

@@ -1,0 +1,192 @@
+---
+title: 'Delete Doctor'
+api: 'DELETE /api/doctors/:id'
+description: 'Remove a doctor from the system'
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Unique identifier of the doctor to delete (e.g., "doc_8x9y2z3a4b5c6d7e")
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="force" type="boolean" default="false">
+  Force deletion even if the doctor has associated schedules or appointments. 
+  
+  **Warning:** Setting this to `true` will also delete all related schedules and cancel all future appointments. Use with caution.
+</ParamField>
+
+<ParamField query="reassign_to" type="string">
+  Doctor ID to reassign future appointments to. If provided, appointments will be transferred instead of cancelled.
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the deletion was successful
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Confirmation message
+</ResponseField>
+
+<ResponseField name="deleted_id" type="string">
+  ID of the deleted doctor
+</ResponseField>
+
+<ResponseField name="deleted_at" type="string">
+  ISO 8601 timestamp of when the deletion occurred
+</ResponseField>
+
+<ResponseField name="reassigned_appointments" type="integer">
+  Number of appointments reassigned to another doctor (only present when `reassign_to` is used)
+</ResponseField>
+
+<ResponseField name="cancelled_appointments" type="integer">
+  Number of appointments that were cancelled (only present when `force=true`)
+</ResponseField>
+
+<RequestExample>
+```bash cURL - Simple Delete
+curl -X DELETE "https://api.saludya.com/api/doctors/doc_8x9y2z3a4b5c6d7e" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```bash Force Delete
+curl -X DELETE "https://api.saludya.com/api/doctors/doc_8x9y2z3a4b5c6d7e?force=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```bash Delete with Reassignment
+curl -X DELETE "https://api.saludya.com/api/doctors/doc_8x9y2z3a4b5c6d7e?reassign_to=doc_7w8x9y0z1a2b3c4d" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response - Simple Delete
+{
+  "success": true,
+  "message": "Doctor successfully deleted",
+  "deleted_id": "doc_8x9y2z3a4b5c6d7e",
+  "deleted_at": "2024-03-06T17:30:00Z"
+}
+```
+
+```json Success Response - Force Delete
+{
+  "success": true,
+  "message": "Doctor and all associated data successfully deleted",
+  "deleted_id": "doc_8x9y2z3a4b5c6d7e",
+  "deleted_at": "2024-03-06T17:30:00Z",
+  "cancelled_appointments": 8
+}
+```
+
+```json Success Response - With Reassignment
+{
+  "success": true,
+  "message": "Doctor deleted and appointments reassigned",
+  "deleted_id": "doc_8x9y2z3a4b5c6d7e",
+  "deleted_at": "2024-03-06T17:30:00Z",
+  "reassigned_appointments": 12
+}
+```
+
+```json Error Response (404)
+{
+  "error": {
+    "code": "DOCTOR_NOT_FOUND",
+    "message": "Doctor with ID 'doc_8x9y2z3a4b5c6d7e' does not exist"
+  }
+}
+```
+
+```json Error Response (409)
+{
+  "error": {
+    "code": "DOCTOR_HAS_APPOINTMENTS",
+    "message": "Cannot delete doctor with active appointments. Use force=true to cancel appointments or reassign_to parameter to transfer them.",
+    "details": {
+      "active_appointments": 5,
+      "upcoming_appointments": 12
+    }
+  }
+}
+```
+
+```json Error Response (400)
+{
+  "error": {
+    "code": "INVALID_REASSIGNMENT",
+    "message": "Cannot reassign appointments: target doctor has different specialty",
+    "details": {
+      "source_specialty": "Cardiology",
+      "target_specialty": "Pediatrics"
+    }
+  }
+}
+```
+
+```json Error Response (401)
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API key. Please provide a valid authorization token."
+  }
+}
+```
+</ResponseExample>
+
+## Deletion Behavior
+
+### Default Deletion
+By default, the API will **not** allow deletion if:
+- The doctor has any upcoming appointments
+- The doctor has active schedules
+- The doctor has any associated records
+
+### Force Deletion (`force=true`)
+When force deletion is enabled:
+1. All associated schedules are deleted
+2. All future appointments are cancelled
+3. Past appointment records are preserved for historical purposes
+4. Patients with cancelled appointments should be notified
+
+### Reassignment (`reassign_to`)
+When reassigning appointments:
+1. Only future appointments are reassigned
+2. The target doctor must have the same or compatible specialty
+3. Appointments are reassigned to available time slots
+4. If no compatible slots exist, the operation fails
+5. Patients should be notified of the doctor change
+
+## Important Warnings
+
+<Warning>
+  **Permanent Action**: Deleting a doctor is a permanent action and cannot be undone. Make sure you have backed up any necessary data before proceeding.
+</Warning>
+
+<Warning>
+  **Patient Impact**: Deleting a doctor with active appointments will affect patients. Always use the `reassign_to` parameter when possible to minimize disruption.
+</Warning>
+
+<Warning>
+  **Compliance**: Ensure deletion complies with data retention policies and medical record regulations in your jurisdiction.
+</Warning>
+
+## Best Practices
+
+1. **Check for appointments first** - Use [Get Doctor](/api/doctors/get) with `include=appointments` to see what will be affected
+2. **Prefer reassignment** - Use `reassign_to` instead of cancelling appointments when possible
+3. **Archive instead of delete** - Consider marking the doctor as unavailable using [Update Doctor](/api/doctors/update) instead of deletion
+4. **Notify patients** - Always notify affected patients when appointments are cancelled or reassigned
+
+## Related Resources
+
+- [Get Doctor](/api/doctors/get) - Check doctor details before deletion
+- [Update Doctor](/api/doctors/update) - Set doctor as unavailable instead of deleting
+- [List Appointments](/api/appointments/list) - View doctor's appointments
+- [Reassign Appointment](/api/appointments/update) - Manually reassign individual appointments

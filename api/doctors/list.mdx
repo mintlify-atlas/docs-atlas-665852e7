@@ -1,0 +1,169 @@
+---
+title: 'List Doctors'
+api: 'GET /api/doctors'
+description: 'Retrieve a list of all doctors with optional filtering'
+---
+
+## Query Parameters
+
+<ParamField query="specialty" type="string">
+  Filter doctors by medical specialty (e.g., "Cardiology", "Pediatrics", "Dermatology")
+</ParamField>
+
+<ParamField query="availability" type="boolean">
+  Filter doctors by availability status. Set to `true` to show only available doctors
+</ParamField>
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="integer" default="20">
+  Number of results per page (max: 100)
+</ParamField>
+
+<ParamField query="search" type="string">
+  Search doctors by name, specialty, or license number
+</ParamField>
+
+## Response
+
+<ResponseField name="doctors" type="array">
+  Array of doctor objects
+  
+  <ResponseField name="id" type="string">
+    Unique identifier for the doctor
+  </ResponseField>
+  
+  <ResponseField name="name" type="string">
+    Full name of the doctor
+  </ResponseField>
+  
+  <ResponseField name="specialty" type="string">
+    Medical specialty or specialization
+  </ResponseField>
+  
+  <ResponseField name="license_number" type="string">
+    Professional medical license number
+  </ResponseField>
+  
+  <ResponseField name="email" type="string">
+    Doctor's contact email address
+  </ResponseField>
+  
+  <ResponseField name="phone" type="string">
+    Doctor's contact phone number
+  </ResponseField>
+  
+  <ResponseField name="bio" type="string">
+    Professional biography and credentials
+  </ResponseField>
+  
+  <ResponseField name="available" type="boolean">
+    Whether the doctor is currently accepting new patients
+  </ResponseField>
+  
+  <ResponseField name="created_at" type="string">
+    ISO 8601 timestamp of when the doctor was added to the system
+  </ResponseField>
+  
+  <ResponseField name="updated_at" type="string">
+    ISO 8601 timestamp of last update
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="pagination" type="object">
+  Pagination metadata
+  
+  <ResponseField name="page" type="integer">
+    Current page number
+  </ResponseField>
+  
+  <ResponseField name="limit" type="integer">
+    Results per page
+  </ResponseField>
+  
+  <ResponseField name="total" type="integer">
+    Total number of doctors matching the query
+  </ResponseField>
+  
+  <ResponseField name="pages" type="integer">
+    Total number of pages
+  </ResponseField>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.saludya.com/api/doctors?specialty=Cardiology&availability=true&page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```bash Filter by Search
+curl -X GET "https://api.saludya.com/api/doctors?search=Garcia" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "doctors": [
+    {
+      "id": "doc_8x9y2z3a4b5c6d7e",
+      "name": "Dr. Maria Garcia",
+      "specialty": "Cardiology",
+      "license_number": "MD-12345-CA",
+      "email": "maria.garcia@saludya.com",
+      "phone": "+1-555-0123",
+      "bio": "Board-certified cardiologist with 15 years of experience in interventional cardiology and heart disease prevention. Graduate of Stanford Medical School.",
+      "available": true,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-03-01T14:22:00Z"
+    },
+    {
+      "id": "doc_7w8x9y0z1a2b3c4d",
+      "name": "Dr. James Chen",
+      "specialty": "Cardiology",
+      "license_number": "MD-67890-CA",
+      "email": "james.chen@saludya.com",
+      "phone": "+1-555-0124",
+      "bio": "Specialized in cardiac imaging and non-invasive cardiology. Fellowship trained at Mayo Clinic with expertise in echocardiography.",
+      "available": true,
+      "created_at": "2024-02-01T09:15:00Z",
+      "updated_at": "2024-02-28T11:45:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 2,
+    "pages": 1
+  }
+}
+```
+
+```json Error Response (400)
+{
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Invalid specialty provided. Please use a valid medical specialty.",
+    "field": "specialty"
+  }
+}
+```
+
+```json Error Response (401)
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API key. Please provide a valid authorization token."
+  }
+}
+```
+</ResponseExample>
+
+## Related Resources
+
+- [Get Doctor](/api/doctors/get) - Retrieve a specific doctor's details
+- [Doctor Schedules](/api/schedules/list) - View available time slots for doctors
+- [Appointments](/api/appointments/list) - Manage doctor appointments

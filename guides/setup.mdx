@@ -1,0 +1,271 @@
+---
+title: "Setup Guide"
+description: "Learn how to deploy and run the SaludYa API in your environment"
+---
+
+## Prerequisites
+
+Before setting up SaludYa API, ensure you have the following installed:
+
+- **Node.js** (v16 or higher)
+- **PostgreSQL** (v13 or higher)
+- **npm** or **yarn** package manager
+- **Git** for version control
+
+<Tip>
+  We recommend using **Node.js v18 LTS** for optimal performance and security.
+</Tip>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the SaludYa API repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/your-org/saludya-api.git
+    cd saludya-api
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Install all required Node.js packages:
+    
+    ```bash
+    npm install
+    ```
+    
+    This will install Express, TypeORM, authentication libraries, and other dependencies defined in `package.json`.
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the root directory by copying the example file:
+    
+    ```bash
+    cp .env.example .env
+    ```
+    
+    Update the `.env` file with your configuration:
+    
+    ```bash
+    # Server Configuration
+    PORT=3000
+    NODE_ENV=development
+    
+    # Database Configuration
+    DB_HOST=localhost
+    DB_PORT=5432
+    DB_USERNAME=saludya_user
+    DB_PASSWORD=your_secure_password
+    DB_NAME=saludya_db
+    
+    # JWT Authentication
+    JWT_SECRET=your_jwt_secret_key_minimum_32_characters
+    JWT_EXPIRES_IN=24h
+    
+    # Rate Limiting
+    RATE_LIMIT_WINDOW_MS=900000
+    RATE_LIMIT_MAX_REQUESTS=100
+    
+    # CORS Configuration
+    ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
+    ```
+    
+    <Warning>
+      Never commit your `.env` file to version control. Keep your `JWT_SECRET` secure and use a strong, randomly generated string in production.
+    </Warning>
+  </Step>
+
+  <Step title="Set up the database">
+    Create a PostgreSQL database for SaludYa:
+    
+    ```bash
+    # Connect to PostgreSQL
+    psql -U postgres
+    
+    # Create database and user
+    CREATE DATABASE saludya_db;
+    CREATE USER saludya_user WITH ENCRYPTED PASSWORD 'your_secure_password';
+    GRANT ALL PRIVILEGES ON DATABASE saludya_db TO saludya_user;
+    ```
+    
+    Run database migrations to create the required tables:
+    
+    ```bash
+    npm run migration:run
+    ```
+    
+    <Tip>
+      You can optionally seed the database with sample data for testing:
+      
+      ```bash
+      npm run seed
+      ```
+    </Tip>
+  </Step>
+
+  <Step title="Start the server">
+    Start the development server:
+    
+    ```bash
+    npm run dev
+    ```
+    
+    The API will be available at `http://localhost:3000`. You should see:
+    
+    ```
+    🚀 Server running on port 3000
+    📊 Database connected successfully
+    ```
+  </Step>
+</Steps>
+
+## Database Schema
+
+SaludYa API uses the following main database tables:
+
+| Table | Description |
+|-------|-------------|
+| `users` | User accounts (patients, doctors, admins) |
+| `patients` | Patient profiles and medical information |
+| `doctors` | Doctor profiles and specializations |
+| `appointments` | Medical appointment records |
+| `schedules` | Doctor availability and working hours |
+| `medical_records` | Patient medical history |
+
+## Production Deployment
+
+### Environment Configuration
+
+For production deployments, update your environment variables:
+
+```bash
+NODE_ENV=production
+PORT=8080
+
+# Use production database credentials
+DB_HOST=your-production-db.example.com
+DB_SSL=true
+
+# Strong JWT secret (min 64 characters)
+JWT_SECRET=use_a_cryptographically_secure_random_string_here
+
+# Stricter rate limits for production
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=60
+```
+
+<Warning>
+  Always enable SSL/TLS for database connections in production and use environment-specific secrets management (AWS Secrets Manager, HashiCorp Vault, etc.).
+</Warning>
+
+### Build and Run
+
+<Steps>
+  <Step title="Build the application">
+    ```bash
+    npm run build
+    ```
+  </Step>
+
+  <Step title="Run migrations">
+    ```bash
+    NODE_ENV=production npm run migration:run
+    ```
+  </Step>
+
+  <Step title="Start production server">
+    ```bash
+    npm start
+    ```
+    
+    Or use a process manager like PM2:
+    
+    ```bash
+    pm2 start dist/server.js --name saludya-api
+    pm2 save
+    pm2 startup
+    ```
+  </Step>
+</Steps>
+
+### Docker Deployment
+
+SaludYa API includes a Dockerfile for containerized deployments:
+
+```bash
+# Build the Docker image
+docker build -t saludya-api:latest .
+
+# Run with docker-compose
+docker-compose up -d
+```
+
+The `docker-compose.yml` includes the API server, PostgreSQL database, and Redis for caching.
+
+## Health Checks
+
+Verify your deployment is healthy:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-03-06T10:30:00.000Z",
+  "database": "connected",
+  "uptime": 3600
+}
+```
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Database connection failed">
+    **Problem:** Cannot connect to PostgreSQL database.
+    
+    **Solutions:**
+    - Verify PostgreSQL is running: `pg_isready`
+    - Check database credentials in `.env`
+    - Ensure the database exists: `psql -l`
+    - Check firewall settings and network connectivity
+  </Accordion>
+
+  <Accordion title="Port already in use">
+    **Problem:** `Error: listen EADDRINUSE: address already in use :::3000`
+    
+    **Solutions:**
+    - Change the `PORT` in your `.env` file
+    - Stop the process using port 3000: `lsof -ti:3000 | xargs kill`
+  </Accordion>
+
+  <Accordion title="Migration errors">
+    **Problem:** Database migrations fail to run.
+    
+    **Solutions:**
+    - Ensure database is empty or at the correct version
+    - Check migration files for syntax errors
+    - Reset database: `npm run migration:revert` then `npm run migration:run`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Making Requests" icon="code" href="/guides/making-requests">
+    Learn how to make API requests with pagination and filtering
+  </Card>
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Set up authentication for secure API access
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Explore all available endpoints
+  </Card>
+  <Card title="Rate Limits" icon="gauge" href="/guides/rate-limits">
+    Understand rate limiting and best practices
+  </Card>
+</CardGroup>

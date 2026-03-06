@@ -1,0 +1,225 @@
+---
+title: 'Get Doctor'
+api: 'GET /api/doctors/:id'
+description: 'Retrieve detailed information about a specific doctor'
+---
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Unique identifier of the doctor (e.g., "doc_8x9y2z3a4b5c6d7e")
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="include" type="string">
+  Comma-separated list of related resources to include in the response. Options: `schedules`, `appointments`, `stats`
+  
+  - `schedules`: Include the doctor's availability schedules
+  - `appointments`: Include upcoming appointments
+  - `stats`: Include statistics (total appointments, average rating, etc.)
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique identifier for the doctor
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Full name of the doctor
+</ResponseField>
+
+<ResponseField name="specialty" type="string">
+  Medical specialty
+</ResponseField>
+
+<ResponseField name="license_number" type="string">
+  Professional medical license number
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Doctor's contact email address
+</ResponseField>
+
+<ResponseField name="phone" type="string">
+  Doctor's contact phone number
+</ResponseField>
+
+<ResponseField name="bio" type="string">
+  Professional biography and credentials
+</ResponseField>
+
+<ResponseField name="available" type="boolean">
+  Whether the doctor is currently accepting new patients
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the doctor was added
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<ResponseField name="schedules" type="array">
+  Available when `include=schedules` is specified. Array of schedule objects.
+  
+  <ResponseField name="id" type="string">
+    Schedule identifier
+  </ResponseField>
+  
+  <ResponseField name="day_of_week" type="string">
+    Day of the week (e.g., "Monday", "Tuesday")
+  </ResponseField>
+  
+  <ResponseField name="start_time" type="string">
+    Start time in HH:MM format (e.g., "09:00")
+  </ResponseField>
+  
+  <ResponseField name="end_time" type="string">
+    End time in HH:MM format (e.g., "17:00")
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="appointments" type="array">
+  Available when `include=appointments` is specified. Array of upcoming appointment objects.
+  
+  <ResponseField name="id" type="string">
+    Appointment identifier
+  </ResponseField>
+  
+  <ResponseField name="patient_name" type="string">
+    Name of the patient
+  </ResponseField>
+  
+  <ResponseField name="appointment_date" type="string">
+    ISO 8601 timestamp of the appointment
+  </ResponseField>
+  
+  <ResponseField name="status" type="string">
+    Appointment status (e.g., "scheduled", "confirmed", "completed")
+  </ResponseField>
+</ResponseField>
+
+<ResponseField name="stats" type="object">
+  Available when `include=stats` is specified. Statistical information.
+  
+  <ResponseField name="total_appointments" type="integer">
+    Total number of appointments completed
+  </ResponseField>
+  
+  <ResponseField name="average_rating" type="number">
+    Average patient rating (0-5)
+  </ResponseField>
+  
+  <ResponseField name="active_patients" type="integer">
+    Number of active patients
+  </ResponseField>
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.saludya.com/api/doctors/doc_8x9y2z3a4b5c6d7e" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```bash With Schedules
+curl -X GET "https://api.saludya.com/api/doctors/doc_8x9y2z3a4b5c6d7e?include=schedules" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```bash With All Relations
+curl -X GET "https://api.saludya.com/api/doctors/doc_8x9y2z3a4b5c6d7e?include=schedules,appointments,stats" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+</RequestExample>
+
+<ResponseExample>
+```json Success Response
+{
+  "id": "doc_8x9y2z3a4b5c6d7e",
+  "name": "Dr. Maria Garcia",
+  "specialty": "Cardiology",
+  "license_number": "MD-12345-CA",
+  "email": "maria.garcia@saludya.com",
+  "phone": "+1-555-0123",
+  "bio": "Board-certified cardiologist with 15 years of experience in interventional cardiology and heart disease prevention. Graduate of Stanford Medical School.",
+  "available": true,
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-03-01T14:22:00Z"
+}
+```
+
+```json With Schedules and Stats
+{
+  "id": "doc_8x9y2z3a4b5c6d7e",
+  "name": "Dr. Maria Garcia",
+  "specialty": "Cardiology",
+  "license_number": "MD-12345-CA",
+  "email": "maria.garcia@saludya.com",
+  "phone": "+1-555-0123",
+  "bio": "Board-certified cardiologist with 15 years of experience in interventional cardiology and heart disease prevention. Graduate of Stanford Medical School.",
+  "available": true,
+  "schedules": [
+    {
+      "id": "sch_1a2b3c4d5e6f7g8h",
+      "day_of_week": "Monday",
+      "start_time": "09:00",
+      "end_time": "17:00"
+    },
+    {
+      "id": "sch_2b3c4d5e6f7g8h9i",
+      "day_of_week": "Wednesday",
+      "start_time": "09:00",
+      "end_time": "17:00"
+    },
+    {
+      "id": "sch_3c4d5e6f7g8h9i0j",
+      "day_of_week": "Friday",
+      "start_time": "09:00",
+      "end_time": "13:00"
+    }
+  ],
+  "stats": {
+    "total_appointments": 342,
+    "average_rating": 4.8,
+    "active_patients": 156
+  },
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-03-01T14:22:00Z"
+}
+```
+
+```json Error Response (404)
+{
+  "error": {
+    "code": "DOCTOR_NOT_FOUND",
+    "message": "Doctor with ID 'doc_8x9y2z3a4b5c6d7e' does not exist"
+  }
+}
+```
+
+```json Error Response (401)
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API key. Please provide a valid authorization token."
+  }
+}
+```
+</ResponseExample>
+
+## Use Cases
+
+- **Patient portal** - Display doctor profiles with specialties and bios
+- **Appointment booking** - Show available doctors and their schedules
+- **Analytics dashboard** - View doctor performance metrics and statistics
+- **Verification** - Validate doctor credentials and license information
+
+## Related Resources
+
+- [List Doctors](/api/doctors/list) - Browse all doctors
+- [Update Doctor](/api/doctors/update) - Modify doctor information
+- [Doctor Schedules](/api/schedules/list) - Manage availability
+- [Appointments](/api/appointments/list) - View doctor's appointments

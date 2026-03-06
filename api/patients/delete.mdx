@@ -1,0 +1,121 @@
+---
+title: 'Delete Patient'
+api: 'DELETE /api/patients/:id'
+description: 'Delete a patient record from the system'
+---
+
+<Warning>
+  This is a destructive operation that permanently removes Protected Health Information (PHI). Ensure you have proper authorization and consider data retention policies before deletion. This action is irreversible and logged for compliance.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Unique patient identifier (e.g., `pat_1a2b3c4d5e6f`)
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="force" type="boolean" default="false">
+  Force delete even if patient has associated appointments. If false, deletion will fail when active appointments exist.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  ID of the deleted patient
+</ResponseField>
+
+<ResponseField name="deleted" type="boolean">
+  Confirmation that the patient was deleted
+</ResponseField>
+
+<ResponseField name="deleted_at" type="string">
+  Timestamp when the patient was deleted
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://api.saludya.com/api/patients/pat_1a2b3c4d5e6f" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+
+```bash Force Delete
+curl -X DELETE "https://api.saludya.com/api/patients/pat_1a2b3c4d5e6f?force=true" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json"
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+{
+  "id": "pat_1a2b3c4d5e6f",
+  "deleted": true,
+  "deleted_at": "2024-03-06T17:00:00Z"
+}
+```
+
+```json 404 Not Found
+{
+  "error": {
+    "code": "patient_not_found",
+    "message": "No patient found with the specified ID",
+    "details": {
+      "patient_id": "pat_1a2b3c4d5e6f"
+    }
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "error": {
+    "code": "patient_has_appointments",
+    "message": "Cannot delete patient with active appointments",
+    "details": {
+      "patient_id": "pat_1a2b3c4d5e6f",
+      "active_appointments": 3,
+      "suggestion": "Use force=true parameter to override, or cancel appointments first"
+    }
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid or missing API key"
+  }
+}
+```
+
+```json 403 Forbidden
+{
+  "error": {
+    "code": "forbidden",
+    "message": "Insufficient permissions to delete patient records",
+    "details": {
+      "required_permission": "patients:delete"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Data Retention and Compliance
+
+<Note>
+  When a patient is deleted:
+  - All PHI is permanently removed from active databases
+  - Audit logs are retained for compliance (minimum 7 years per HIPAA)
+  - Associated appointments may be anonymized rather than deleted
+  - Billing records are retained per regulatory requirements
+  - Backup data follows your organization's retention policy
+</Note>
+
+<Tip>
+  Consider implementing a "soft delete" or "archive" feature for your application to maintain data integrity while marking records as inactive. Contact support for information about data archival options.
+</Tip>

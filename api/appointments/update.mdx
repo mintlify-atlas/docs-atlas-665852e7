@@ -1,0 +1,309 @@
+---
+title: 'Update Appointment'
+api: 'PUT /api/appointments/:id'
+description: 'Update an existing appointment'
+---
+
+Update the details of an existing appointment. You can modify the date, time, status, notes, and other appointment information.
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Unique identifier of the appointment to update
+</ParamField>
+
+## Request Body
+
+<ParamField body="date" type="string">
+  New date for the appointment in ISO 8601 format (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="time" type="string">
+  New time for the appointment in 24-hour format (HH:MM)
+</ParamField>
+
+<ParamField body="duration_minutes" type="integer">
+  Updated duration of the appointment in minutes
+</ParamField>
+
+<ParamField body="status" type="string">
+  Update appointment status. Options: `scheduled`, `confirmed`, `in_progress`, `completed`, `cancelled`, `no_show`
+</ParamField>
+
+<ParamField body="reason" type="string">
+  Updated reason for the appointment visit
+</ParamField>
+
+<ParamField body="notes" type="string">
+  Updated notes or special instructions
+</ParamField>
+
+<ParamField body="diagnosis" type="string">
+  Medical diagnosis (typically set when status changes to `completed`)
+</ParamField>
+
+<ParamField body="prescription" type="string">
+  Prescribed medications or treatment plan
+</ParamField>
+
+<ParamField body="follow_up_required" type="boolean">
+  Whether a follow-up appointment is recommended
+</ParamField>
+
+<ParamField body="follow_up_date" type="string">
+  Recommended date for follow-up appointment (ISO 8601 format)
+</ParamField>
+
+<ParamField body="cancellation_reason" type="string">
+  Reason for cancellation (required when status is set to `cancelled`)
+</ParamField>
+
+<ParamField body="send_notification" type="boolean" default="true">
+  Whether to send update notification to the patient
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique appointment identifier
+</ResponseField>
+
+<ResponseField name="patient_id" type="string">
+  ID of the patient
+</ResponseField>
+
+<ResponseField name="patient_name" type="string">
+  Full name of the patient
+</ResponseField>
+
+<ResponseField name="doctor_id" type="string">
+  ID of the assigned doctor
+</ResponseField>
+
+<ResponseField name="doctor_name" type="string">
+  Full name of the doctor
+</ResponseField>
+
+<ResponseField name="specialty" type="string">
+  Medical specialty for the appointment
+</ResponseField>
+
+<ResponseField name="date" type="string">
+  Appointment date (ISO 8601 format)
+</ResponseField>
+
+<ResponseField name="time" type="string">
+  Appointment time (HH:MM format)
+</ResponseField>
+
+<ResponseField name="duration_minutes" type="integer">
+  Expected duration of the appointment in minutes
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Current status of the appointment
+</ResponseField>
+
+<ResponseField name="reason" type="string">
+  Reason for the appointment visit
+</ResponseField>
+
+<ResponseField name="notes" type="string">
+  Additional notes or special instructions
+</ResponseField>
+
+<ResponseField name="diagnosis" type="string">
+  Medical diagnosis
+</ResponseField>
+
+<ResponseField name="prescription" type="string">
+  Prescribed medications or treatment
+</ResponseField>
+
+<ResponseField name="follow_up_required" type="boolean">
+  Whether a follow-up appointment is recommended
+</ResponseField>
+
+<ResponseField name="follow_up_date" type="string">
+  Recommended date for follow-up appointment
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Timestamp when the appointment was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Timestamp when the appointment was last updated
+</ResponseField>
+
+<ResponseField name="completed_at" type="string">
+  Timestamp when the appointment was completed (if applicable)
+</ResponseField>
+
+<ResponseField name="cancelled_at" type="string">
+  Timestamp when the appointment was cancelled (if applicable)
+</ResponseField>
+
+<ResponseField name="cancellation_reason" type="string">
+  Reason for cancellation (if applicable)
+</ResponseField>
+
+## Example Request - Reschedule Appointment
+
+```bash
+curl -X PUT "https://api.saludya.com/api/appointments/apt_7k3m9n2p4q" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "date": "2026-03-12",
+    "time": "10:00",
+    "notes": "Paciente solicitó cambio de horario",
+    "send_notification": true
+  }'
+```
+
+## Example Request - Complete Appointment
+
+```bash
+curl -X PUT "https://api.saludya.com/api/appointments/apt_7k3m9n2p4q" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "completed",
+    "diagnosis": "Hipertensión arterial controlada",
+    "prescription": "Continuar con Enalapril 10mg una vez al día. Control en 3 meses.",
+    "follow_up_required": true,
+    "follow_up_date": "2026-06-10",
+    "send_notification": false
+  }'
+```
+
+## Example Request - Cancel Appointment
+
+```bash
+curl -X PUT "https://api.saludya.com/api/appointments/apt_7k3m9n2p4q" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "cancelled",
+    "cancellation_reason": "Paciente tuvo una emergencia familiar",
+    "send_notification": true
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": "apt_7k3m9n2p4q",
+  "patient_id": "pat_5x8y2z4a6b",
+  "patient_name": "María González",
+  "doctor_id": "doc_3j5k7m9n1p",
+  "doctor_name": "Dr. Carlos Ramírez",
+  "specialty": "Cardiología",
+  "date": "2026-03-12",
+  "time": "10:00",
+  "duration_minutes": 30,
+  "status": "scheduled",
+  "reason": "Consulta de control cardiovascular",
+  "notes": "Paciente solicitó cambio de horario",
+  "diagnosis": null,
+  "prescription": null,
+  "follow_up_required": false,
+  "follow_up_date": null,
+  "created_at": "2026-03-05T14:22:10Z",
+  "updated_at": "2026-03-06T11:45:30Z",
+  "completed_at": null,
+  "cancelled_at": null,
+  "cancellation_reason": null
+}
+```
+
+## Error Responses
+
+<ResponseField name="error" type="object">
+  <ResponseField name="code" type="string">
+    Error code identifier
+  </ResponseField>
+  
+  <ResponseField name="message" type="string">
+    Human-readable error message
+  </ResponseField>
+  
+  <ResponseField name="details" type="object">
+    Additional error details (when applicable)
+  </ResponseField>
+</ResponseField>
+
+### 400 Bad Request
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid request data",
+    "details": {
+      "status": "Cannot change status to 'completed' without providing diagnosis"
+    }
+  }
+}
+```
+
+### 401 Unauthorized
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API token"
+  }
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "You don't have permission to modify this appointment"
+  }
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "Appointment with ID 'apt_7k3m9n2p4q' not found"
+  }
+}
+```
+
+### 409 Conflict
+
+```json
+{
+  "error": {
+    "code": "APPOINTMENT_CONFLICT",
+    "message": "Doctor is not available at the requested time",
+    "details": {
+      "conflicting_appointment_id": "apt_8m4n1p5r7s",
+      "suggested_times": ["10:30", "11:00", "11:30"]
+    }
+  }
+}
+```
+
+### 422 Unprocessable Entity
+
+```json
+{
+  "error": {
+    "code": "INVALID_STATE_TRANSITION",
+    "message": "Cannot update a completed appointment. Contact support if you need to make changes."
+  }
+}
+```

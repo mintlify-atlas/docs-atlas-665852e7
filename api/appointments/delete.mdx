@@ -1,0 +1,147 @@
+---
+title: 'Delete Appointment'
+api: 'DELETE /api/appointments/:id'
+description: 'Permanently delete an appointment'
+---
+
+Permanently delete an appointment from the system. This action cannot be undone.
+
+<Warning>
+  Deleting an appointment is permanent and cannot be reversed. Consider using the update endpoint to cancel the appointment instead, which preserves the appointment history.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="string" required>
+  Unique identifier of the appointment to delete
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="send_notification" type="boolean" default="true">
+  Whether to send cancellation notification to the patient and doctor
+</ParamField>
+
+<ParamField query="reason" type="string">
+  Reason for deletion (will be included in notifications if sent)
+</ParamField>
+
+## Response
+
+Successful deletion returns a 204 No Content response with no body.
+
+## Example Request
+
+```bash
+curl -X DELETE "https://api.saludya.com/api/appointments/apt_7k3m9n2p4q?send_notification=true&reason=Duplicate%20appointment" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Example Request - No Notification
+
+```bash
+curl -X DELETE "https://api.saludya.com/api/appointments/apt_7k3m9n2p4q?send_notification=false" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+## Success Response
+
+Status Code: `204 No Content`
+
+No response body is returned on successful deletion.
+
+## Error Responses
+
+<ResponseField name="error" type="object">
+  <ResponseField name="code" type="string">
+    Error code identifier
+  </ResponseField>
+  
+  <ResponseField name="message" type="string">
+    Human-readable error message
+  </ResponseField>
+</ResponseField>
+
+### 401 Unauthorized
+
+```json
+{
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "Invalid or missing API token"
+  }
+}
+```
+
+### 403 Forbidden
+
+```json
+{
+  "error": {
+    "code": "FORBIDDEN",
+    "message": "You don't have permission to delete this appointment"
+  }
+}
+```
+
+### 404 Not Found
+
+```json
+{
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "Appointment with ID 'apt_7k3m9n2p4q' not found"
+  }
+}
+```
+
+### 409 Conflict
+
+```json
+{
+  "error": {
+    "code": "CANNOT_DELETE",
+    "message": "Cannot delete appointment that is currently in progress"
+  }
+}
+```
+
+### 422 Unprocessable Entity
+
+```json
+{
+  "error": {
+    "code": "DELETION_NOT_ALLOWED",
+    "message": "Cannot delete completed appointments. Contact support for assistance."
+  }
+}
+```
+
+## Best Practices
+
+<Tip>
+  Instead of deleting appointments, consider updating the status to `cancelled`. This preserves appointment history and provides better audit trails for medical records.
+</Tip>
+
+### When to Delete vs Cancel
+
+**Delete when:**
+- The appointment was created by mistake
+- It's a duplicate entry
+- The appointment was never confirmed and is no longer needed
+
+**Cancel (using update endpoint) when:**
+- Patient cancels a scheduled appointment
+- Doctor is unavailable
+- Appointment needs to be rescheduled
+- Any situation where maintaining history is important
+
+## Bulk Deletion
+
+To delete multiple appointments, you need to make individual DELETE requests for each appointment. Bulk deletion is not supported through this endpoint for safety reasons.
+
+If you need to delete multiple appointments, consider:
+1. Using the list endpoint to get appointment IDs
+2. Filtering appointments that match your criteria
+3. Making individual DELETE requests for each
+4. Implementing rate limiting to avoid API throttling

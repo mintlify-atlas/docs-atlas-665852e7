@@ -1,0 +1,556 @@
+---
+title: "Rate Limits"
+description: "Understanding rate limits and implementing best practices for the SaludYa API"
+---
+
+## Overview
+
+SaludYa API implements rate limiting to ensure fair usage and maintain service quality for all users. Rate limits prevent abuse and help maintain optimal performance for medical appointment management operations.
+
+<Tip>
+  Rate limits are applied per API key and reset at the end of each time window.
+</Tip>
+
+## Rate Limit Tiers
+
+Different usage tiers have different rate limits:
+
+| Tier | Requests per 15 minutes | Requests per hour | Requests per day |
+|------|------------------------|-------------------|------------------|
+| **Free** | 100 | 300 | 1,000 |
+| **Basic** | 500 | 1,500 | 10,000 |
+| **Professional** | 2,000 | 6,000 | 50,000 |
+| **Enterprise** | Custom | Custom | Custom |
+
+<Warning>
+  Exceeding rate limits will result in `429 Too Many Requests` responses. Your application should handle these gracefully.
+</Warning>
+
+## Rate Limit Headers
+
+Every API response includes rate limit information in the headers:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 85
+X-RateLimit-Reset: 1709719200
+X-RateLimit-Window: 900
+```
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed in the current window |
+| `X-RateLimit-Remaining` | Number of requests remaining in the current window |
+| `X-RateLimit-Reset` | Unix timestamp when the rate limit resets |
+| `X-RateLimit-Window` | Length of the rate limit window in seconds |
+
+## Handling Rate Limits
+
+### Checking Rate Limit Status
+
+Monitor rate limit headers to track your usage:
+
+<CodeGroup>
+```javascript JavaScript
+const makeRequest = async (url) => {
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  // Check rate limit headers
+  const limit = response.headers.get('X-RateLimit-Limit');
+  const remaining = response.headers.get('X-RateLimit-Remaining');
+  const reset = response.headers.get('X-RateLimit-Reset');
+
+  console.log(`Rate limit: ${remaining}/${limit} requests remaining`);
+  console.log(`Resets at: ${new Date(reset * 1000).toISOString()}`);
+
+  if (response.status === 429) {
+    const retryAfter = response.headers.get('Retry-After');
+    throw new Error(`Rate limit exceeded. Retry after ${retryAfter} seconds`);
+  }
+
+  return response.json();
+};
+```
+
+```python Python
+import requests
+from datetime import datetime
+
+def make_request(url):
+    response = requests.get(
+        url,
+        headers={'Authorization': f'Bearer {token}'}
+    )
+    
+    # Check rate limit headers
+    limit = response.headers.get('X-RateLimit-Limit')
+    remaining = response.headers.get('X-RateLimit-Remaining')
+    reset = response.headers.get('X-RateLimit-Reset')
+    
+    print(f'Rate limit: {remaining}/{limit} requests remaining')
+    print(f'Resets at: {datetime.fromtimestamp(int(reset))}')
+    
+    if response.status_code == 429:
+        retry_after = response.headers.get('Retry-After')
+        raise Exception(f'Rate limit exceeded. Retry after {retry_after} seconds')
+    
+    response.raise_for_status()
+    return response.json()
+```
+</CodeGroup>
+
+### Implementing Retry Logic
+
+Implement exponential backoff when encountering rate limits:
+
+<CodeGroup>
+```javascript JavaScript
+const makeRequestWithRetry = async (url, maxRetries = 3) => {
+  let retries = 0;
+
+  while (retries < maxRetries) {
+    try {
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.status === 429) {
+        const retryAfter = parseInt(
+          response.headers.get('Retry-After') || '60'
+        );
+        
+        console.log(`Rate limited. Waiting ${retryAfter}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        
+        retries++;
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      if (retries >= maxRetries - 1) throw error;
+      
+      // Exponential backoff
+      const waitTime = Math.pow(2, retries) * 1000;
+      console.log(`Error occurred. Retrying in ${waitTime}ms...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      
+      retries++;
+    }
+  }
+
+  throw new Error('Max retries exceeded');
+};
+```
+
+```python Python
+import time
+import requests
+
+def make_request_with_retry(url, max_retries=3):
+    retries = 0
+    
+    while retries < max_retries:
+        try:
+            response = requests.get(
+                url,
+                headers={'Authorization': f'Bearer {token}'}
+            )
+            
+            if response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 60))
+                print(f'Rate limited. Waiting {retry_after}s before retry...')
+                time.sleep(retry_after)
+                retries += 1
+                continue
+            
+            response.raise_for_status()
+            return response.json()
+            
+        except requests.exceptions.HTTPError as e:
+            if retries >= max_retries - 1:
+                raise e
+            
+            # Exponential backoff
+            wait_time = 2 ** retries
+            print(f'Error occurred. Retrying in {wait_time}s...')
+            time.sleep(wait_time)
+            retries += 1
+    
+    raise Exception('Max retries exceeded')
+```
+</CodeGroup>
+
+<Tip>
+  Always respect the `Retry-After` header value when implementing retry logic. This ensures you don't waste requests during rate limit periods.
+</Tip>
+
+## Rate Limit Response
+
+When you exceed the rate limit, you'll receive a `429` response:
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Rate limit exceeded. Please try again later.",
+    "retryAfter": 45,
+    "limit": 100,
+    "window": "15 minutes"
+  }
+}
+```
+
+### Response Headers
+
+```http
+HTTP/1.1 429 Too Many Requests
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1709719200
+Retry-After: 45
+```
+
+## Best Practices
+
+### 1. Cache Responses
+
+Reduce API calls by caching frequently accessed data:
+
+<CodeGroup>
+```javascript JavaScript
+class APIClient {
+  constructor() {
+    this.cache = new Map();
+    this.cacheDuration = 5 * 60 * 1000; // 5 minutes
+  }
+
+  async getWithCache(endpoint) {
+    const cached = this.cache.get(endpoint);
+    
+    if (cached && Date.now() - cached.timestamp < this.cacheDuration) {
+      console.log('Returning cached data');
+      return cached.data;
+    }
+
+    const data = await this.makeRequest(endpoint);
+    
+    this.cache.set(endpoint, {
+      data,
+      timestamp: Date.now()
+    });
+
+    return data;
+  }
+
+  async makeRequest(endpoint) {
+    const response = await fetch(`https://api.saludya.com/v1${endpoint}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    return response.json();
+  }
+}
+```
+
+```python Python
+import time
+import requests
+
+class APIClient:
+    def __init__(self):
+        self.cache = {}
+        self.cache_duration = 5 * 60  # 5 minutes
+    
+    def get_with_cache(self, endpoint):
+        cached = self.cache.get(endpoint)
+        
+        if cached and time.time() - cached['timestamp'] < self.cache_duration:
+            print('Returning cached data')
+            return cached['data']
+        
+        data = self.make_request(endpoint)
+        
+        self.cache[endpoint] = {
+            'data': data,
+            'timestamp': time.time()
+        }
+        
+        return data
+    
+    def make_request(self, endpoint):
+        response = requests.get(
+            f'https://api.saludya.com/v1{endpoint}',
+            headers={'Authorization': f'Bearer {token}'}
+        )
+        response.raise_for_status()
+        return response.json()
+```
+</CodeGroup>
+
+### 2. Use Batch Operations
+
+When creating or updating multiple resources, use batch endpoints:
+
+```javascript
+// Instead of multiple single requests:
+// ❌ Don't do this
+for (const appointment of appointments) {
+  await createAppointment(appointment);
+}
+
+// ✅ Use batch endpoint
+await fetch('https://api.saludya.com/v1/appointments/batch', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ appointments })
+});
+```
+
+### 3. Implement Request Queuing
+
+Queue requests to stay within rate limits:
+
+<CodeGroup>
+```javascript JavaScript
+class RateLimitedQueue {
+  constructor(maxRequestsPerWindow = 100, windowMs = 15 * 60 * 1000) {
+    this.queue = [];
+    this.processing = false;
+    this.maxRequests = maxRequestsPerWindow;
+    this.windowMs = windowMs;
+    this.requestCount = 0;
+    this.windowStart = Date.now();
+  }
+
+  async add(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ requestFn, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing || this.queue.length === 0) return;
+    
+    this.processing = true;
+
+    while (this.queue.length > 0) {
+      // Reset counter if window has passed
+      if (Date.now() - this.windowStart >= this.windowMs) {
+        this.requestCount = 0;
+        this.windowStart = Date.now();
+      }
+
+      // Wait if limit reached
+      if (this.requestCount >= this.maxRequests) {
+        const waitTime = this.windowMs - (Date.now() - this.windowStart);
+        console.log(`Rate limit reached. Waiting ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        this.requestCount = 0;
+        this.windowStart = Date.now();
+      }
+
+      const { requestFn, resolve, reject } = this.queue.shift();
+      
+      try {
+        const result = await requestFn();
+        this.requestCount++;
+        resolve(result);
+      } catch (error) {
+        reject(error);
+      }
+
+      // Small delay between requests
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    this.processing = false;
+  }
+}
+
+// Usage
+const queue = new RateLimitedQueue(100, 15 * 60 * 1000);
+
+const fetchAppointment = (id) => {
+  return queue.add(() => 
+    fetch(`https://api.saludya.com/v1/appointments/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    }).then(r => r.json())
+  );
+};
+```
+</CodeGroup>
+
+### 4. Monitor Usage
+
+Track your API usage to prevent hitting limits:
+
+```javascript
+class UsageMonitor {
+  constructor() {
+    this.requests = [];
+  }
+
+  recordRequest(remaining, limit, resetTime) {
+    this.requests.push({
+      timestamp: Date.now(),
+      remaining,
+      limit,
+      resetTime
+    });
+
+    // Alert if usage is high
+    const usagePercent = ((limit - remaining) / limit) * 100;
+    
+    if (usagePercent > 80) {
+      console.warn(
+        `⚠️ High API usage: ${usagePercent.toFixed(1)}% of rate limit used`
+      );
+    }
+  }
+
+  getStats() {
+    const now = Date.now();
+    const last15Min = this.requests.filter(
+      r => now - r.timestamp < 15 * 60 * 1000
+    );
+
+    return {
+      requestsLast15Min: last15Min.length,
+      averageRemaining: last15Min.reduce(
+        (sum, r) => sum + r.remaining, 0
+      ) / last15Min.length
+    };
+  }
+}
+```
+
+### 5. Use Webhooks for Real-time Updates
+
+Instead of polling for changes, use webhooks to receive real-time notifications:
+
+```javascript
+// ❌ Don't poll repeatedly
+setInterval(async () => {
+  const appointments = await fetchAppointments();
+  checkForUpdates(appointments);
+}, 30000); // This wastes rate limit!
+
+// ✅ Use webhooks instead
+// Configure webhook endpoint to receive appointment updates
+// See /guides/webhooks for setup instructions
+```
+
+<Warning>
+  Avoid polling the API frequently. Use webhooks for real-time updates to conserve your rate limit.
+</Warning>
+
+## Endpoint-Specific Limits
+
+Some endpoints have additional rate limits:
+
+| Endpoint | Additional Limit | Reason |
+|----------|-----------------|--------|
+| `POST /auth/login` | 5 per minute | Security - prevent brute force |
+| `POST /auth/reset-password` | 3 per hour | Security - prevent abuse |
+| `POST /appointments/batch` | 10 per hour | Resource protection |
+| `GET /reports/*` | 20 per hour | Computational cost |
+
+## Increasing Rate Limits
+
+If your application requires higher rate limits:
+
+<Steps>
+  <Step title="Assess your needs">
+    Document your expected API usage patterns and peak request volumes.
+  </Step>
+
+  <Step title="Optimize your implementation">
+    Ensure you're following all best practices:
+    - Caching responses
+    - Using batch endpoints
+    - Implementing request queuing
+    - Using webhooks instead of polling
+  </Step>
+
+  <Step title="Upgrade your plan">
+    Consider upgrading to a higher tier plan that better suits your needs.
+    
+    Contact sales at sales@saludya.com or visit the [pricing page](https://saludya.com/pricing).
+  </Step>
+
+  <Step title="Enterprise solutions">
+    For custom rate limits and SLA guarantees, contact our enterprise team for a tailored solution.
+  </Step>
+</Steps>
+
+## Testing Rate Limits
+
+When developing, you can test rate limit handling:
+
+```bash
+# Make rapid requests to trigger rate limiting
+for i in {1..150}; do
+  curl -X GET 'https://api.saludya.com/v1/appointments' \
+    -H "Authorization: Bearer $TOKEN" \
+    -w "\nStatus: %{http_code}\n"
+  sleep 0.1
+done
+```
+
+<Tip>
+  Use a development or sandbox environment for rate limit testing to avoid impacting your production quota.
+</Tip>
+
+## Rate Limit FAQs
+
+<AccordionGroup>
+  <Accordion title="Do rate limits apply per API key or per account?">
+    Rate limits are applied per API key. If you need to isolate rate limits for different applications, create separate API keys for each.
+  </Accordion>
+
+  <Accordion title="What happens to queued requests when the limit resets?">
+    When the rate limit window resets, your quota is fully restored. Any properly queued requests will be processed in order.
+  </Accordion>
+
+  <Accordion title="Are rate limits the same for all endpoints?">
+    Most endpoints share the same rate limit, but authentication and resource-intensive endpoints have additional restrictions. See the endpoint-specific limits section above.
+  </Accordion>
+
+  <Accordion title="Can I request a temporary rate limit increase?">
+    Yes, contact support at support@saludya.com with details about your use case and duration needed. Temporary increases are evaluated on a case-by-case basis.
+  </Accordion>
+
+  <Accordion title="Do failed requests count toward the rate limit?">
+    Yes, all requests (successful or failed) count toward your rate limit, except for 500-level server errors which do not count against your quota.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Learn about securing your API requests
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Explore all available endpoints
+  </Card>
+  <Card title="Making Requests" icon="code" href="/guides/making-requests">
+    Learn about pagination and filtering
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/error-handling">
+    Handle API errors gracefully
+  </Card>
+</CardGroup>

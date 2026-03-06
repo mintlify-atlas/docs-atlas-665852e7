@@ -1,0 +1,167 @@
+---
+title: 'Delete Schedule'
+api: 'DELETE /api/schedules/:id'
+description: 'Delete a doctor schedule'
+---
+
+Permanently delete a doctor schedule. This removes the recurring availability slot from the system.
+
+<Warning>
+  Deleting a schedule is permanent and cannot be undone. Consider setting `is_available` to `false` instead if you want to temporarily disable a schedule.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the schedule to delete
+</ParamField>
+
+## Query Parameters
+
+<ParamField query="force" type="boolean" default="false">
+  Force deletion even if future appointments exist for this schedule. When `false`, the API will reject deletion if appointments are scheduled.
+</ParamField>
+
+## Response
+
+Successful deletion returns a 204 No Content response with an empty body.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://api.saludya.com/api/schedules/101" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```bash cURL - Force Delete
+curl -X DELETE "https://api.saludya.com/api/schedules/101?force=true" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.saludya.com/api/schedules/101', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
+});
+
+if (response.status === 204) {
+  console.log('Schedule deleted successfully');
+}
+```
+
+```python Python
+import requests
+
+response = requests.delete(
+    'https://api.saludya.com/api/schedules/101',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}
+)
+
+if response.status_code == 204:
+    print('Schedule deleted successfully')
+```
+</RequestExample>
+
+<ResponseExample>
+```json 204 No Content
+```
+
+```json 404 Not Found
+{
+  "error": "Not Found",
+  "message": "Schedule with id 101 not found"
+}
+```
+
+```json 409 Conflict
+{
+  "error": "Conflict",
+  "message": "Cannot delete schedule with future appointments",
+  "appointment_count": 5,
+  "next_appointment_date": "2026-03-10T10:00:00Z",
+  "suggestion": "Use force=true to delete anyway, or set is_available=false to disable"
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Invalid or missing authentication token"
+}
+```
+
+```json 403 Forbidden
+{
+  "error": "Forbidden",
+  "message": "You do not have permission to delete this schedule"
+}
+```
+</ResponseExample>
+
+## Important Considerations
+
+### Impact on Appointments
+
+Deleting a schedule affects appointment booking:
+
+- **Future appointments**: Existing appointments remain valid but may fall outside doctor's availability
+- **New bookings**: Patients cannot book new appointments in the deleted time slot
+- **Recurring pattern**: The weekly availability pattern is permanently removed
+
+### Safe Deletion Workflow
+
+1. **Check for existing appointments**:
+   ```bash
+   curl "https://api.saludya.com/api/appointments?schedule_id=101&status=scheduled"
+   ```
+
+2. **Option A - Disable instead of delete** (recommended):
+   ```bash
+   curl -X PUT "https://api.saludya.com/api/schedules/101" \
+     -H "Authorization: Bearer YOUR_API_TOKEN" \
+     -d '{"is_available": false}'
+   ```
+
+3. **Option B - Handle appointments first**:
+   - Reschedule or cancel affected appointments
+   - Notify patients of changes
+   - Then delete the schedule
+
+4. **Option C - Force delete**:
+   ```bash
+   curl -X DELETE "https://api.saludya.com/api/schedules/101?force=true" \
+     -H "Authorization: Bearer YOUR_API_TOKEN"
+   ```
+
+### When to Delete vs. Disable
+
+**Delete when**:
+- Doctor permanently changes their schedule pattern
+- Removing incorrect or duplicate schedules
+- Doctor leaves the practice
+
+**Disable when**:
+- Temporary absence (vacation, medical leave)
+- Seasonal schedule changes
+- Testing new availability patterns
+- Unsure if the schedule will be needed again
+
+## Bulk Delete Example
+
+To remove all schedules for a doctor:
+
+```bash
+#!/bin/bash
+# Get all schedule IDs for doctor
+SCHEDULES=$(curl -s "https://api.saludya.com/api/schedules?doctor_id=5" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" | \
+  jq -r '.schedules[].id')
+
+# Delete each schedule
+for schedule_id in $SCHEDULES; do
+  curl -X DELETE "https://api.saludya.com/api/schedules/$schedule_id" \
+    -H "Authorization: Bearer YOUR_API_TOKEN"
+  echo "Deleted schedule $schedule_id"
+done
+```

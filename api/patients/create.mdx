@@ -1,0 +1,233 @@
+---
+title: 'Create Patient'
+api: 'POST /api/patients'
+description: 'Create a new patient record in the system'
+---
+
+<Warning>
+  This endpoint creates records containing Protected Health Information (PHI). Ensure compliance with HIPAA regulations and proper data encryption.
+</Warning>
+
+## Request Body
+
+<ParamField body="name" type="string" required>
+  Patient's full name
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Patient's email address (must be unique)
+</ParamField>
+
+<ParamField body="phone" type="string" required>
+  Patient's phone number in E.164 format (e.g., +1-555-0123)
+</ParamField>
+
+<ParamField body="date_of_birth" type="string" required>
+  Patient's date of birth in ISO 8601 format (YYYY-MM-DD)
+</ParamField>
+
+<ParamField body="medical_history" type="object">
+  Patient's medical history information
+  
+  <ParamField body="conditions" type="array">
+    List of existing medical conditions
+  </ParamField>
+  
+  <ParamField body="allergies" type="array">
+    List of known allergies
+  </ParamField>
+  
+  <ParamField body="medications" type="array">
+    List of current medications
+  </ParamField>
+  
+  <ParamField body="blood_type" type="string">
+    Blood type (A+, A-, B+, B-, AB+, AB-, O+, O-)
+  </ParamField>
+</ParamField>
+
+<ParamField body="insurance" type="object">
+  Insurance information
+  
+  <ParamField body="provider" type="string" required>
+    Insurance provider name
+  </ParamField>
+  
+  <ParamField body="policy_number" type="string" required>
+    Insurance policy number
+  </ParamField>
+  
+  <ParamField body="group_number" type="string">
+    Insurance group number
+  </ParamField>
+  
+  <ParamField body="expiration_date" type="string">
+    Insurance expiration date (YYYY-MM-DD)
+  </ParamField>
+</ParamField>
+
+<ParamField body="emergency_contact" type="object">
+  Emergency contact information
+  
+  <ParamField body="name" type="string">
+    Contact person's name
+  </ParamField>
+  
+  <ParamField body="phone" type="string">
+    Contact person's phone number
+  </ParamField>
+  
+  <ParamField body="relationship" type="string">
+    Relationship to patient
+  </ParamField>
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique patient identifier
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  Patient's full name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Patient's email address
+</ResponseField>
+
+<ResponseField name="phone" type="string">
+  Patient's phone number
+</ResponseField>
+
+<ResponseField name="date_of_birth" type="string">
+  Patient's date of birth
+</ResponseField>
+
+<ResponseField name="medical_history" type="object">
+  Patient's medical history
+</ResponseField>
+
+<ResponseField name="insurance" type="object">
+  Insurance information
+</ResponseField>
+
+<ResponseField name="emergency_contact" type="object">
+  Emergency contact information
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  Timestamp when patient was created
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  Timestamp when patient was last updated
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.saludya.com/api/patients" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sofia Rodriguez",
+    "email": "sofia.rodriguez@email.com",
+    "phone": "+1-555-0789",
+    "date_of_birth": "1990-11-08",
+    "medical_history": {
+      "conditions": ["Asthma", "Type 2 Diabetes"],
+      "allergies": ["Penicillin", "Peanuts"],
+      "medications": ["Metformin 500mg", "Albuterol inhaler"],
+      "blood_type": "A+"
+    },
+    "insurance": {
+      "provider": "UnitedHealthcare",
+      "policy_number": "UHC456789123",
+      "group_number": "GRP-9922",
+      "expiration_date": "2025-12-31"
+    },
+    "emergency_contact": {
+      "name": "Carlos Rodriguez",
+      "phone": "+1-555-0790",
+      "relationship": "Spouse"
+    }
+  }'
+```
+
+```bash Minimal Example
+curl -X POST "https://api.saludya.com/api/patients" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Emma Johnson",
+    "email": "emma.johnson@email.com",
+    "phone": "+1-555-0321",
+    "date_of_birth": "1995-05-20"
+  }'
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 Created
+{
+  "id": "pat_3c4d5e6f7g8h",
+  "name": "Sofia Rodriguez",
+  "email": "sofia.rodriguez@email.com",
+  "phone": "+1-555-0789",
+  "date_of_birth": "1990-11-08",
+  "medical_history": {
+    "conditions": ["Asthma", "Type 2 Diabetes"],
+    "allergies": ["Penicillin", "Peanuts"],
+    "medications": ["Metformin 500mg", "Albuterol inhaler"],
+    "blood_type": "A+"
+  },
+  "insurance": {
+    "provider": "UnitedHealthcare",
+    "policy_number": "UHC456789123",
+    "group_number": "GRP-9922",
+    "expiration_date": "2025-12-31"
+  },
+  "emergency_contact": {
+    "name": "Carlos Rodriguez",
+    "phone": "+1-555-0790",
+    "relationship": "Spouse"
+  },
+  "created_at": "2024-03-06T15:30:00Z",
+  "updated_at": "2024-03-06T15:30:00Z"
+}
+```
+
+```json 400 Bad Request
+{
+  "error": {
+    "code": "validation_error",
+    "message": "Invalid request data",
+    "details": {
+      "email": "Invalid email format",
+      "date_of_birth": "Must be a valid date in YYYY-MM-DD format"
+    }
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "error": {
+    "code": "duplicate_patient",
+    "message": "A patient with this email already exists",
+    "details": {
+      "email": "sofia.rodriguez@email.com"
+    }
+  }
+}
+```
+
+```json 401 Unauthorized
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Invalid or missing API key"
+  }
+}
+```
+</ResponseExample>

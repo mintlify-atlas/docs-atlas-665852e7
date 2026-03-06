@@ -1,0 +1,516 @@
+---
+title: "Making Requests"
+description: "Learn how to make effective API requests with pagination, filtering, and sorting"
+---
+
+## Request Format
+
+All API requests to SaludYa follow REST principles and return JSON responses.
+
+### Base URL
+
+```
+https://api.saludya.com/v1
+```
+
+For local development:
+
+```
+http://localhost:3000/v1
+```
+
+### Headers
+
+Include these headers in all requests:
+
+```http
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+<Tip>
+  Get your JWT token by authenticating through the `/auth/login` endpoint. See the [Authentication guide](/authentication) for details.
+</Tip>
+
+## Basic Request Example
+
+Here's a simple request to fetch appointments:
+
+<CodeGroup>
+```javascript JavaScript
+const response = await fetch('https://api.saludya.com/v1/appointments', {
+  method: 'GET',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+  }
+});
+
+const data = await response.json();
+console.log(data);
+```
+
+```python Python
+import requests
+
+headers = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+}
+
+response = requests.get(
+    'https://api.saludya.com/v1/appointments',
+    headers=headers
+)
+
+data = response.json()
+print(data)
+```
+
+```bash cURL
+curl -X GET 'https://api.saludya.com/v1/appointments' \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+```
+</CodeGroup>
+
+## Pagination
+
+List endpoints return paginated results to improve performance. Use the `page` and `limit` query parameters to control pagination.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number to retrieve |
+| `limit` | integer | 20 | Number of items per page (max: 100) |
+
+### Example Request
+
+```http
+GET /v1/appointments?page=2&limit=50
+```
+
+<CodeGroup>
+```javascript JavaScript
+const fetchAppointments = async (page = 1, limit = 20) => {
+  const url = new URL('https://api.saludya.com/v1/appointments');
+  url.searchParams.set('page', page);
+  url.searchParams.set('limit', limit);
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+
+  return response.json();
+};
+
+// Fetch page 2 with 50 items
+const data = await fetchAppointments(2, 50);
+```
+
+```python Python
+def fetch_appointments(page=1, limit=20):
+    params = {
+        'page': page,
+        'limit': limit
+    }
+    
+    response = requests.get(
+        'https://api.saludya.com/v1/appointments',
+        headers={'Authorization': f'Bearer {token}'},
+        params=params
+    )
+    
+    return response.json()
+
+# Fetch page 2 with 50 items
+data = fetch_appointments(page=2, limit=50)
+```
+</CodeGroup>
+
+### Response Format
+
+Paginated responses include metadata about the result set:
+
+```json
+{
+  "data": [
+    {
+      "id": "apt_1234567890",
+      "patientId": "pat_9876543210",
+      "doctorId": "doc_5555555555",
+      "dateTime": "2026-03-15T14:30:00Z",
+      "status": "scheduled",
+      "reason": "Annual checkup"
+    }
+    // ... more appointments
+  ],
+  "pagination": {
+    "page": 2,
+    "limit": 50,
+    "totalPages": 5,
+    "totalItems": 243,
+    "hasNextPage": true,
+    "hasPreviousPage": true
+  }
+}
+```
+
+<Tip>
+  Use the `hasNextPage` and `hasPreviousPage` fields to implement navigation in your UI.
+</Tip>
+
+## Filtering
+
+Filter results using query parameters. Available filters depend on the resource type.
+
+### Common Filters
+
+#### Appointments
+
+```http
+GET /v1/appointments?status=scheduled&doctorId=doc_123&date=2026-03-15
+```
+
+| Filter | Type | Description |
+|--------|------|-------------|
+| `status` | string | Filter by appointment status (`scheduled`, `completed`, `cancelled`, `no_show`) |
+| `patientId` | string | Filter by patient ID |
+| `doctorId` | string | Filter by doctor ID |
+| `date` | string | Filter by appointment date (ISO 8601 format) |
+| `dateFrom` | string | Appointments starting from this date |
+| `dateTo` | string | Appointments up to this date |
+
+#### Patients
+
+```http
+GET /v1/patients?bloodType=O+&insuranceProvider=HealthCare Inc
+```
+
+| Filter | Type | Description |
+|--------|------|-------------|
+| `bloodType` | string | Filter by blood type |
+| `insuranceProvider` | string | Filter by insurance provider |
+| `minAge` | integer | Minimum age |
+| `maxAge` | integer | Maximum age |
+
+#### Doctors
+
+```http
+GET /v1/doctors?specialization=Cardiology&available=true
+```
+
+| Filter | Type | Description |
+|--------|------|-------------|
+| `specialization` | string | Filter by medical specialization |
+| `available` | boolean | Filter by current availability |
+| `rating` | number | Minimum rating (0-5) |
+
+### Example: Complex Filtering
+
+Find all scheduled appointments for a specific doctor in March 2026:
+
+<CodeGroup>
+```javascript JavaScript
+const fetchDoctorAppointments = async (doctorId, dateFrom, dateTo) => {
+  const url = new URL('https://api.saludya.com/v1/appointments');
+  url.searchParams.set('doctorId', doctorId);
+  url.searchParams.set('status', 'scheduled');
+  url.searchParams.set('dateFrom', dateFrom);
+  url.searchParams.set('dateTo', dateTo);
+  url.searchParams.set('limit', 100);
+
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  return response.json();
+};
+
+const appointments = await fetchDoctorAppointments(
+  'doc_123',
+  '2026-03-01',
+  '2026-03-31'
+);
+```
+
+```python Python
+def fetch_doctor_appointments(doctor_id, date_from, date_to):
+    params = {
+        'doctorId': doctor_id,
+        'status': 'scheduled',
+        'dateFrom': date_from,
+        'dateTo': date_to,
+        'limit': 100
+    }
+    
+    response = requests.get(
+        'https://api.saludya.com/v1/appointments',
+        headers={'Authorization': f'Bearer {token}'},
+        params=params
+    )
+    
+    return response.json()
+
+appointments = fetch_doctor_appointments(
+    'doc_123',
+    '2026-03-01',
+    '2026-03-31'
+)
+```
+</CodeGroup>
+
+<Warning>
+  When filtering by date ranges, ensure dates are in ISO 8601 format (`YYYY-MM-DD`). Invalid date formats will return a 400 error.
+</Warning>
+
+## Sorting
+
+Sort results using the `sortBy` and `order` query parameters.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `sortBy` | string | `createdAt` | Field to sort by |
+| `order` | string | `desc` | Sort order: `asc` or `desc` |
+
+### Sortable Fields
+
+#### Appointments
+- `dateTime` - Appointment date and time
+- `createdAt` - Record creation date
+- `updatedAt` - Last update date
+- `status` - Appointment status
+
+#### Patients
+- `lastName` - Patient last name
+- `createdAt` - Registration date
+- `dateOfBirth` - Date of birth
+
+#### Doctors
+- `lastName` - Doctor last name
+- `specialization` - Medical specialization
+- `rating` - Average rating
+- `yearsOfExperience` - Experience in years
+
+### Example Requests
+
+Sort appointments by date (oldest first):
+
+```http
+GET /v1/appointments?sortBy=dateTime&order=asc
+```
+
+Sort doctors by rating (highest first):
+
+```http
+GET /v1/doctors?sortBy=rating&order=desc
+```
+
+<CodeGroup>
+```javascript JavaScript
+// Fetch upcoming appointments sorted by date
+const fetchUpcomingAppointments = async () => {
+  const url = new URL('https://api.saludya.com/v1/appointments');
+  url.searchParams.set('status', 'scheduled');
+  url.searchParams.set('sortBy', 'dateTime');
+  url.searchParams.set('order', 'asc');
+  url.searchParams.set('dateFrom', new Date().toISOString().split('T')[0]);
+
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  return response.json();
+};
+```
+
+```python Python
+# Fetch top-rated cardiologists
+def fetch_top_cardiologists():
+    params = {
+        'specialization': 'Cardiology',
+        'sortBy': 'rating',
+        'order': 'desc',
+        'limit': 10
+    }
+    
+    response = requests.get(
+        'https://api.saludya.com/v1/doctors',
+        headers={'Authorization': f'Bearer {token}'},
+        params=params
+    )
+    
+    return response.json()
+```
+</CodeGroup>
+
+## Combining Parameters
+
+You can combine pagination, filtering, and sorting in a single request:
+
+```http
+GET /v1/appointments?status=scheduled&doctorId=doc_123&dateFrom=2026-03-15&sortBy=dateTime&order=asc&page=1&limit=25
+```
+
+<CodeGroup>
+```javascript JavaScript
+const fetchFilteredAppointments = async (filters) => {
+  const url = new URL('https://api.saludya.com/v1/appointments');
+  
+  // Add all filter parameters
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      url.searchParams.set(key, value);
+    }
+  });
+
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  return response.json();
+};
+
+// Usage
+const appointments = await fetchFilteredAppointments({
+  status: 'scheduled',
+  doctorId: 'doc_123',
+  dateFrom: '2026-03-15',
+  sortBy: 'dateTime',
+  order: 'asc',
+  page: 1,
+  limit: 25
+});
+```
+
+```python Python
+def fetch_filtered_appointments(**filters):
+    # Remove None values
+    params = {k: v for k, v in filters.items() if v is not None}
+    
+    response = requests.get(
+        'https://api.saludya.com/v1/appointments',
+        headers={'Authorization': f'Bearer {token}'},
+        params=params
+    )
+    
+    return response.json()
+
+# Usage
+appointments = fetch_filtered_appointments(
+    status='scheduled',
+    doctorId='doc_123',
+    dateFrom='2026-03-15',
+    sortBy='dateTime',
+    order='asc',
+    page=1,
+    limit=25
+)
+```
+</CodeGroup>
+
+## Response Status Codes
+
+SaludYa API uses standard HTTP status codes:
+
+| Code | Status | Description |
+|------|--------|-------------|
+| 200 | OK | Request succeeded |
+| 201 | Created | Resource created successfully |
+| 400 | Bad Request | Invalid parameters or malformed request |
+| 401 | Unauthorized | Missing or invalid authentication token |
+| 403 | Forbidden | Insufficient permissions |
+| 404 | Not Found | Resource not found |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error occurred |
+
+## Error Handling
+
+Errors return a consistent JSON format:
+
+```json
+{
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Invalid date format for 'dateFrom' parameter",
+    "field": "dateFrom",
+    "details": "Expected ISO 8601 format (YYYY-MM-DD)"
+  }
+}
+```
+
+<CodeGroup>
+```javascript JavaScript
+try {
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error.message);
+  }
+  
+  const data = await response.json();
+  return data;
+} catch (error) {
+  console.error('API Error:', error.message);
+  // Handle error appropriately
+}
+```
+
+```python Python
+try:
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+    return response.json()
+except requests.exceptions.HTTPError as e:
+    error_data = e.response.json()
+    print(f"API Error: {error_data['error']['message']}")
+    # Handle error appropriately
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Pagination" icon="list">
+    Always paginate large result sets. Don't request more than 100 items per page.
+  </Card>
+  
+  <Card title="Filter Strategically" icon="filter">
+    Apply filters to reduce payload size and improve response times.
+  </Card>
+  
+  <Card title="Cache Responses" icon="database">
+    Cache frequently accessed data to reduce API calls and improve performance.
+  </Card>
+  
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    Implement proper error handling for all API calls.
+  </Card>
+</CardGroup>
+
+<Tip>
+  When building search functionality, combine filters with pagination and sorting to create a powerful user experience.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Rate Limits" icon="gauge" href="/guides/rate-limits">
+    Learn about rate limiting and best practices
+  </Card>
+  <Card title="API Reference" icon="book" href="/api/overview">
+    Explore detailed endpoint documentation
+  </Card>
+  <Card title="Authentication" icon="lock" href="/authentication">
+    Learn about authentication methods
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/error-handling">
+    Understand error codes and responses
+  </Card>
+</CardGroup>

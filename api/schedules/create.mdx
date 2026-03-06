@@ -1,0 +1,183 @@
+---
+title: 'Create Schedule'
+api: 'POST /api/schedules'
+description: 'Create a new doctor schedule'
+---
+
+Create a new recurring schedule for a doctor. Schedules define weekly availability patterns for appointment booking.
+
+## Request Body
+
+<ParamField body="doctor_id" type="integer" required>
+  ID of the doctor this schedule is for
+</ParamField>
+
+<ParamField body="day_of_week" type="string" required>
+  Day of the week for this schedule. Valid values: `monday`, `tuesday`, `wednesday`, `thursday`, `friday`, `saturday`, `sunday`
+</ParamField>
+
+<ParamField body="start_time" type="string" required>
+  Start time in HH:MM:SS format (24-hour). Example: `08:00:00`
+</ParamField>
+
+<ParamField body="end_time" type="string" required>
+  End time in HH:MM:SS format (24-hour). Must be after start_time. Example: `17:00:00`
+</ParamField>
+
+<ParamField body="is_available" type="boolean" default="true">
+  Whether this schedule slot is available for appointments
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="integer">
+  Unique identifier for the created schedule
+</ResponseField>
+
+<ResponseField name="doctor_id" type="integer">
+  ID of the doctor this schedule belongs to
+</ResponseField>
+
+<ResponseField name="day_of_week" type="string">
+  Day of the week (monday-sunday)
+</ResponseField>
+
+<ResponseField name="start_time" type="string">
+  Start time in HH:MM:SS format
+</ResponseField>
+
+<ResponseField name="end_time" type="string">
+  End time in HH:MM:SS format
+</ResponseField>
+
+<ResponseField name="is_available" type="boolean">
+  Availability status of this schedule
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of creation
+</ResponseField>
+
+<ResponseField name="updated_at" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.saludya.com/api/schedules" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "doctor_id": 5,
+    "day_of_week": "monday",
+    "start_time": "08:00:00",
+    "end_time": "12:00:00",
+    "is_available": true
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.saludya.com/api/schedules', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    doctor_id: 5,
+    day_of_week: 'monday',
+    start_time: '08:00:00',
+    end_time: '12:00:00',
+    is_available: true
+  })
+});
+
+const data = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.saludya.com/api/schedules',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={
+        'doctor_id': 5,
+        'day_of_week': 'monday',
+        'start_time': '08:00:00',
+        'end_time': '12:00:00',
+        'is_available': True
+    }
+)
+
+data = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 201 Created
+{
+  "id": 101,
+  "doctor_id": 5,
+  "day_of_week": "monday",
+  "start_time": "08:00:00",
+  "end_time": "12:00:00",
+  "is_available": true,
+  "created_at": "2026-03-06T10:30:00Z",
+  "updated_at": "2026-03-06T10:30:00Z"
+}
+```
+
+```json 400 Bad Request
+{
+  "error": "Validation Error",
+  "message": "end_time must be after start_time",
+  "details": {
+    "field": "end_time",
+    "value": "07:00:00"
+  }
+}
+```
+
+```json 409 Conflict
+{
+  "error": "Schedule Conflict",
+  "message": "Doctor already has a schedule for monday 08:00:00-12:00:00",
+  "conflicting_schedule_id": 95
+}
+```
+
+```json 404 Not Found
+{
+  "error": "Not Found",
+  "message": "Doctor with id 5 not found"
+}
+```
+</ResponseExample>
+
+## Creating Full Week Schedules
+
+To set up a doctor's complete weekly availability, create multiple schedules with different day_of_week values:
+
+```bash Example: Full Week Setup
+# Monday - Friday morning shifts
+for day in monday tuesday wednesday thursday friday; do
+  curl -X POST "https://api.saludya.com/api/schedules" \
+    -H "Authorization: Bearer YOUR_API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "doctor_id": 5,
+      "day_of_week": "'$day'",
+      "start_time": "08:00:00",
+      "end_time": "12:00:00"
+    }'
+done
+```
+
+## Validation Rules
+
+- `start_time` must be before `end_time`
+- `day_of_week` must be lowercase and valid weekday name
+- Doctor cannot have overlapping schedules for the same day
+- `doctor_id` must reference an existing doctor
+- Time slots should align with appointment duration settings
